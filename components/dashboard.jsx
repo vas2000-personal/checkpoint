@@ -20,6 +20,7 @@ async function api(path,body) {
 }
 function Widget({title,summary,children}){return <RememberedDetails storageKey={title} className="compact-widget"><summary><span><strong>{title}</strong><small>{summary}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary><div className="widget-content">{children}</div></RememberedDetails>}
 export default function Dashboard() {
+  useEffect(()=>{let timer;const reveal=()=>{document.documentElement.classList.add('is-scrolling');clearTimeout(timer);timer=setTimeout(()=>document.documentElement.classList.remove('is-scrolling'),900)};window.addEventListener('scroll',reveal,{passive:true});return()=>{clearTimeout(timer);window.removeEventListener('scroll',reveal);document.documentElement.classList.remove('is-scrolling')}},[]);
   const [menuOpen,setMenuOpen]=useState(false),[scrolled,setScrolled]=useState(false);
   const menuRef=useRef(null),menuButton=useRef(null);
   useEffect(()=>{const scroll=()=>setScrolled(window.scrollY>60);scroll();window.addEventListener("scroll",scroll,{passive:true});return()=>window.removeEventListener("scroll",scroll)},[]);
