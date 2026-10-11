@@ -1,7 +1,7 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {easternDay,statsForDays} from '../lib/server.js';
+import {easternDay,studyDay,statsForDays} from '../lib/server.js';
 import {validateSync,validateTimeZone,weeklyStudy} from '../lib/study.js';
 import {POST,OPTIONS} from '../app/api/checkpoint/route.js';
 const now=new Date('2026-10-12T03:00:00Z');
@@ -19,7 +19,7 @@ test('sync validates dates, timestamps, counts and privacy boundaries',()=>{
 });
 test('time zones, DST and inclusive breaks preserve XP rules and streaks',()=>{
  assert.equal(easternDay(new Date('2026-10-12T04:30:00Z'),'America/Los_Angeles'),'2026-10-11');
- assert.equal(easternDay(new Date('2026-10-12T04:30:00Z'),'America/New_York'),'2026-10-12');
+ assert.equal(studyDay(new Date('2026-10-12T04:30:00Z'),'America/New_York'),'2026-10-11');
  const days=['2026-10-08','2026-10-09','2026-10-09'];
  const breaks=[{start_day:'2026-10-10',until_day:'2026-10-20'}];
  assert.equal(statsForDays(days,new Date('2026-10-15T12:00:00Z'),'America/New_York',breaks).streak,2);

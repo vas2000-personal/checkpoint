@@ -32,3 +32,5 @@ Before calling the app live, create a real user, post an update, sign in on a se
 ## Miss Log integration
 
 After the baseline schema, apply the additive upgrade in supabase/miss_log.sql once. It adds study entries, hashed API keys, break intervals and per-user time zones. See [MISS_LOG_API.md](MISS_LOG_API.md) for the request contract and iPhone Home Screen instructions. Keys are provisioned administratively and are never available through username-only sign-in.
+
+Apply supabase/hourly_study.sql after miss_log.sql for the hourly feed and separate cumulative daily totals. Study days reset at 4 a.m. in each profile time zone. See MISS_LOG_API.md for client counter-reset guidance.

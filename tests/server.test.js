@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {validatePost,validateUsername,statsForDays,sameOrigin,easternDay} from '../lib/server.js';
+import {validatePost,validateUsername,statsForDays,sameOrigin,easternDay,studyDay} from '../lib/server.js';
 import {POST as signup} from '../app/api/signup/route.js';
 import {POST as signin} from '../app/api/enter/route.js';
 import {POST as post} from '../app/api/posts/route.js';
@@ -16,16 +16,16 @@ test('validates usernames, bounded updates, and same-origin writes',()=>{
  for(const body of [{id:ID,username:'other',message:'Progress'},{id:ID,username:'brother',message:' '},{id:ID,username:'brother',message:'x'.repeat(2001)}])assert.throws(()=>validatePost(body,'brother'));
  assert.equal(sameOrigin(new Request('https://checkpoint.vas-anbu.dev/api/posts',{headers:{Origin:'https://other.test'}})),false);
 });
-test('Eastern midnight and daylight saving preserve one award per local day',()=>{
+test('Eastern calendar conversion and 4 a.m. study days preserve daily awards',()=>{
  assert.equal(easternDay(new Date('2026-07-12T03:59:59Z')),'2026-07-11');
  assert.equal(easternDay(new Date('2026-07-12T04:00:00Z')),'2026-07-12');
  assert.equal(easternDay(new Date('2026-01-12T04:59:59Z')),'2026-01-11');
  assert.equal(easternDay(new Date('2026-01-12T05:00:00Z')),'2026-01-12');
  assert.equal(statsForDays(['2026-07-11','2026-07-11'],new Date('2026-07-12T03:59:59Z')).xp,100);
- assert.equal(statsForDays(['2026-07-11'],new Date('2026-07-12T04:00:00Z')).postedToday,false);
+ assert.equal(statsForDays(['2026-07-11'],new Date('2026-07-12T08:00:00Z')).postedToday,false);
  assert.equal(statsForDays(['2026-07-11'],new Date('2026-07-12T04:00:00Z')).streak,1);
- assert.equal(statsForDays(['2026-03-07','2026-03-08','2026-03-09'],new Date('2026-03-09T04:01:00Z')).streak,3);
- assert.equal(statsForDays(['2026-10-31','2026-11-01','2026-11-02'],new Date('2026-11-02T05:01:00Z')).streak,3);
+ assert.equal(statsForDays(['2026-03-07','2026-03-08','2026-03-09'],new Date('2026-03-09T08:01:00Z')).streak,3);
+ assert.equal(statsForDays(['2026-10-31','2026-11-01','2026-11-02'],new Date('2026-11-02T09:01:00Z')).streak,3);
 });
 test('independent persistent device sessions share posts; sign-out revokes only that device',async()=>{
  process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_SECRET_KEY='test-secret';
@@ -43,9 +43,9 @@ test('independent persistent device sessions share posts; sign-out revokes only 
    if(method==='DELETE'){if(index>=0)sessions.splice(index,1);return new Response(null,{status:204})}
    const match=index<0?[]:[sessions[index]].filter(row=>row.expires_at>q.get('expires_at').slice(3));return Response.json(match);
   }
-  if(table==='checkpoint_breaks')return Response.json([]);
+  if(table==='checkpoint_breaks'||table==='checkpoint_study_days')return Response.json([]);
   if(table==='checkpoint_posts'){
-   if(method==='POST'){if(!posts.some(row=>row.id===body.id))posts.push({...body,created_at:new Date().toISOString(),post_day:easternDay()});return new Response(null,{status:201})}
+   if(method==='POST'){if(!posts.some(row=>row.id===body.id))posts.push({...body,created_at:new Date().toISOString(),post_day:studyDay()});return new Response(null,{status:201})}
    return Response.json(posts.filter(row=>q.get('username')==='eq.'+row.username));
   }
   if(table==='checkpoint_days')return Response.json([...new Set(posts.filter(row=>q.get('username')==='eq.'+row.username).map(row=>row.post_day))].map(post_day=>({post_day})));
@@ -73,6 +73,6 @@ test('pagination includes same-time rows using the ID as a second cursor key',as
  process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_SECRET_KEY='test-secret';
  const previous=globalThis.fetch,time='2026-10-11T12:00:00+00:00';let paging=false;
  const rows=Array.from({length:51},(_,i)=>({id:'00000000-0000-4000-8000-'+String(100-i).padStart(12,'0'),username:'brother',message:'Test',created_at:time,post_day:'2026-10-11'}));
- globalThis.fetch=async url=>{const u=new URL(url);if(u.pathname.endsWith('checkpoint_breaks')||u.searchParams.get('select')==='post_day,study')return Response.json([]);if(u.pathname.endsWith('checkpoint_users'))return Response.json([{username:'brother',display_name:'Alex'}]);if(u.pathname.endsWith('checkpoint_days'))return Response.json([{post_day:'2026-10-11'}]);if(paging){assert.match(u.searchParams.get('or'),/and\(created_at.eq./);assert.match(u.searchParams.get('or'),/id.lt./);return Response.json(rows.slice(50))}return Response.json(rows)};
+ globalThis.fetch=async url=>{const u=new URL(url);if(u.pathname.endsWith('checkpoint_breaks')||u.pathname.endsWith('checkpoint_study_days'))return Response.json([]);if(u.pathname.endsWith('checkpoint_users'))return Response.json([{username:'brother',display_name:'Alex'}]);if(u.pathname.endsWith('checkpoint_days'))return Response.json([{post_day:'2026-10-11'}]);if(paging){assert.match(u.searchParams.get('or'),/and\(created_at.eq./);assert.match(u.searchParams.get('or'),/id.lt./);return Response.json(rows.slice(50))}return Response.json(rows)};
  try{const response=await board(request('/api/board'));assert.equal(response.status,200);const result=await response.json();assert.equal(result.posts.length,50);paging=true;const next=await (await board(request('/api/board?before='+encodeURIComponent(result.next)))).json();assert.equal(next.posts.length,1);assert.equal(next.next,null);assert.equal((await board(request('/api/board?before=invalid'))).status,400)}finally{globalThis.fetch=previous}
 });
