@@ -103,3 +103,9 @@ html[data-dark=true][data-contrast=true] .hero-art .orbit-two{background:none}
  html[data-contrast=true] .site-header.is-scrolled .mobile-menu-button{background:var(--paper);border-color:var(--ink)}
  @keyframes menu-float{from{transform:translateY(-.3rem);opacity:.7}to{transform:translateY(0);opacity:1}}
 }
+/* Keep Safari's backdrop sampling away from the top viewport edge. */
+@media(max-width:760px){
+ .site-header.is-scrolled .mobile-menu-button{top:calc(1.25rem + env(safe-area-inset-top));overflow:hidden;isolation:isolate;-webkit-backface-visibility:hidden;backface-visibility:hidden;background:rgba(246,245,239,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+ html[data-dark=true] .site-header.is-scrolled .mobile-menu-button{background:rgba(20,34,27,.9)}
+ .site-header.is-scrolled.menu-open .header-actions{top:calc(5rem + env(safe-area-inset-top))}
+}
