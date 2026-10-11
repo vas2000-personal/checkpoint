@@ -36,7 +36,7 @@ export default function Dashboard() {
   async function submitPost(event){event.preventDefault();if(!message.trim()||!user)return;setPosting(true);setPostError('');requestId.current ||= crypto.randomUUID();try{await api('/api/posts',{username:user,message:message.trim(),id:requestId.current});setMessage('');requestId.current=null;notify('Checkpoint saved. A little further today.');await load()}catch(error){setPostError(error.message)}finally{setPosting(false)}}
   const timeZone=board?.timeZone||'America/New_York';
   async function saveSettings(body){await api('/api/settings',body);notify(body.time_zone?'Time zone saved.':'Your pace is saved.');await load()}
-  const stats=board?.stats||EMPTY_STATS,today=board?.today,shown=(board?.posts||[]).filter(post=>filter==='all'||post.post_day===today);
+  const stats=board?.stats||EMPTY_STATS,today=board?.today,shown=(board?.posts||[]).filter(post=>filter==='all'||post.post_day===today).sort((a,b)=>b.post_day.localeCompare(a.post_day)||b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
   const marker=[[71,205],[130,174],[190,140]][Math.floor((stats.xp%300)/100)]||[71,205];
   const week=today?Array.from({length:7},(_,index)=>{const date=new Date(today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-(6-index));const key=date.toISOString().slice(0,10);return {key,today:index===6,checked:stats.days.includes(key),number:date.getUTCDate(),label:date.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'}).slice(0,1)}}):[];
   return <><IconLibrary />
