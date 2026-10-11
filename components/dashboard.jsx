@@ -91,7 +91,7 @@ export default function Dashboard() {
     </Widget><Widget title="This week" summary={`${board?.weekly?.minutes||0} min · ${board?.weekly?.questions||0} questions`}><section className="card week"><div className="card-heading"><div><span className="eyebrow">THE LAST SEVEN DAYS</span><h3>A week of showing up</h3></div></div><div id="week-grid">{week.map(day => <div key={day.key} className={`day${day.today ? " today" : ""}${day.checked ? " checked" : ""}`} title={`${day.key}: ${day.checked ? "Posted an update" : "No update"}`}>{day.label}<b>{day.checked ? <Icon name="check" /> : day.number}</b></div>)}</div><p id="week-summary">{week.filter(day => day.checked).length} of 7 days. The little things are adding up.</p><StudyWeek weekly={board?.weekly}/></section></Widget>
     {user&&board?.selectedUsername===user&&<ProfileSettings timeZone={timeZone} today={today} activeBreak={board.activeBreak} onSave={saveSettings}/>}
     <HomeScreenTip/>
-    <section className="family-note"><span className="family-icon"><svg><use href="#icon-heart"/></svg></span><div><h3>A little window into my day.</h3><p>Just open this page to follow along.<br />I'm glad you're here.</p></div></section>
+    <Widget title="For the family" summary="A little window into the day"><section className="family-note"><span className="family-icon"><svg><use href="#icon-heart"/></svg></span><div><h3>A little window into my day.</h3><p>Just open this page to follow along.<br />I'm glad you're here.</p></div></section></Widget>
   </aside></div>
   <footer><a className="footer-brand" href="/">checkpoint.</a><p>A little progress, every day.</p><span>Days reset at 4 a.m. · {timeZone.replaceAll('_',' ')}</span></footer>
 </main>
