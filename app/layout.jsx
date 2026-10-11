@@ -2,7 +2,7 @@ import './globals.css';
 export const metadata = {
   title:'Checkpoint · A little progress, every day',
   description:'A daily accountability feed for family. Small wins, honest updates, and a reason to keep going.',
-  icons:{icon:'/assets/favicon.svg',apple:'/assets/apple-touch-icon.png'},
+  icons:{icon:[{url:'/assets/favicon.svg?v=2',type:'image/svg+xml'},{url:'/assets/favicon-32.png?v=2',type:'image/png',sizes:'32x32'}],apple:'/assets/apple-touch-icon.png?v=2'},
   appleWebApp:{capable:true,title:'Checkpoint',statusBarStyle:'default'},
   manifest:'/manifest.webmanifest',
 };
