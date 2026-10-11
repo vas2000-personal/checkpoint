@@ -3,6 +3,7 @@ import {Suspense,lazy,Fragment,useCallback,useEffect,useRef,useState} from 'reac
 import {Icon,IconLibrary} from './icons.jsx';
 import {StudyLine,StudyStatus,HourLabel,StudyWeek,ProfileSettings,HomeScreenTip} from './study.jsx';
 
+import RememberedDetails from './remembered-details.jsx';
 const DisplaySettings=lazy(()=>import('./display-settings.jsx'));
 const EMPTY_STATS = {xp:0,streak:0,level:1,days:[],postedToday:false};
 const dateLabel = day => new Date(day+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
@@ -17,7 +18,7 @@ async function api(path,body) {
   let result;try{result=await response.json()}catch{throw Error('The board could not be reached. Please try again.')}
   if(!response.ok)throw Error(result.error||'Please try again.');return result;
 }
-function Widget({title,summary,children}){return <details className="compact-widget"><summary><span><strong>{title}</strong><small>{summary}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary><div className="widget-content">{children}</div></details>}
+function Widget({title,summary,children}){return <RememberedDetails storageKey={title} className="compact-widget"><summary><span><strong>{title}</strong><small>{summary}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary><div className="widget-content">{children}</div></RememberedDetails>}
 export default function Dashboard() {
   const [menuOpen,setMenuOpen]=useState(false),[scrolled,setScrolled]=useState(false);
   const menuRef=useRef(null),menuButton=useRef(null);
