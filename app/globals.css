@@ -89,3 +89,5 @@ html[data-dark=true] :is(input,textarea)::placeholder{color:#bdcbbd;opacity:1}
 html[data-dark=true][data-contrast=true] :is(.datebox,.today-status,.mascot-note,.art-label,.profile-selector label,.empty,.filter-tabs button,.chart-toggle button,.new-user-button,h1 em){color:#fff}
 html[data-dark=true][data-contrast=true] :is(.filter-tabs button.active,.chart-toggle button.active){background:#b8efb6;color:#000}
 html[data-dark=true][data-contrast=true] .hero-art .orbit-two{background:none}
+
+.studying-badge{display:inline-flex;align-items:center;gap:.375rem;padding:.3125rem .625rem;margin-top:.625rem;border-radius:1rem;background:#d8ead0;color:#214523;font-size:.8125rem;font-weight:800}html[data-dark=true] .studying-badge{background:#304b35;color:#dcf4ce}
