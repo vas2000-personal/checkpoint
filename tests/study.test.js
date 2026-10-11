@@ -55,4 +55,3 @@ test('bearer route is user-scoped, bounds bodies and supports cross-origin prefl
   assert.equal((await POST(req({holiday:true,until:easternDay()}))).status,200);
  }finally{globalThis.fetch=previous}
 });
-
