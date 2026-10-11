@@ -18,6 +18,10 @@ async function api(path,body) {
   if(!response.ok)throw Error(result.error||'Please try again.');return result;
 }
 export default function Dashboard() {
+  const [menuOpen,setMenuOpen]=useState(false),[scrolled,setScrolled]=useState(false);
+  const menuRef=useRef(null),menuButton=useRef(null);
+  useEffect(()=>{const scroll=()=>setScrolled(window.scrollY>60);scroll();window.addEventListener("scroll",scroll,{passive:true});return()=>window.removeEventListener("scroll",scroll)},[]);
+  useEffect(()=>{if(!menuOpen)return;const close=e=>{if(!menuRef.current?.contains(e.target)&&!menuButton.current?.contains(e.target))setMenuOpen(false)};document.addEventListener("pointerdown",close);return()=>document.removeEventListener("pointerdown",close)},[menuOpen]);
   const [authMode,setAuthMode]=useState('signin'),[displayName,setDisplayName]=useState('');
   const [board,setBoard]=useState(null),[user,setUser]=useState(''),[username,setUsername]=useState(''),[message,setMessage]=useState(''),[filter,setFilter]=useState('all');
   const [loading,setLoading]=useState(false),[posting,setPosting]=useState(false),[entering,setEntering]=useState(false),[postError,setPostError]=useState(''),[joinError,setJoinError]=useState(''),[loadError,setLoadError]=useState(''),[toast,setToast]=useState('');
@@ -30,8 +34,8 @@ export default function Dashboard() {
   },[]);
   useEffect(()=>{load();return()=>clearTimeout(toastTimer.current)},[load]);
   useEffect(()=>{const refresh=()=>{if(!document.hidden&&!modalRef.current?.open)load()};const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);window.addEventListener('pageshow',refresh);document.addEventListener('visibilitychange',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('pageshow',refresh);document.removeEventListener('visibilitychange',refresh)}},[load]);
-  function openAuth(mode){setAuthMode(mode);setJoinError('');modalRef.current.showModal()}
-  async function enterOrLeave(){if(user){try{await api('/api/signout',{});setUser('');setMessage('');selectedUser.current='';await load()}catch(error){notify(error.message)}}else openAuth('signin')}
+  function openAuth(mode){setMenuOpen(false);setAuthMode(mode);setJoinError('');modalRef.current.showModal()}
+  async function enterOrLeave(){setMenuOpen(false);if(user){try{await api('/api/signout',{});setUser('');setMessage('');selectedUser.current='';await load()}catch(error){notify(error.message)}}else openAuth('signin')}
   async function submitUsername(event){event.preventDefault();setJoinError('');setEntering(true);try{const result=await api(authMode==='signup'?'/api/signup':'/api/enter',{username:username.trim(),displayName});setUser(result.user.username);selectedUser.current=result.user.username;modalRef.current.close();await load();requestAnimationFrame(()=>messageRef.current?.focus())}catch(error){setJoinError(error.message)}finally{setEntering(false)}}
   function addPrompt(prompt){setMessage(previous=>previous.trim()?previous+'\n\n'+prompt:prompt);requestId.current=null;messageRef.current?.focus()}
   async function submitPost(event){event.preventDefault();if(!message.trim()||!user)return;setPosting(true);setPostError('');requestId.current ||= crypto.randomUUID();try{await api('/api/posts',{username:user,message:message.trim(),id:requestId.current});setMessage('');requestId.current=null;notify('Checkpoint saved. A little further today.');await load()}catch(error){setPostError(error.message)}finally{setPosting(false)}}
@@ -41,10 +45,11 @@ export default function Dashboard() {
   const marker=[[71,205],[130,174],[190,140]][Math.floor((stats.xp%300)/100)]||[71,205];
   const week=today?Array.from({length:7},(_,index)=>{const date=new Date(today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-(6-index));const key=date.toISOString().slice(0,10);return {key,today:index===6,checked:stats.days.includes(key),number:date.getUTCDate(),label:date.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'}).slice(0,1)}}):[];
   return <><IconLibrary />
-<header className="site-header"><div className="header-inner">
+<header className={`site-header${scrolled?" is-scrolled":""}${menuOpen?" menu-open":""}`} onKeyDown={event=>{if(event.key==="Escape"){setMenuOpen(false);menuButton.current?.focus()}}}><div className="header-inner">
   <a className="brand" href="/" aria-label="Checkpoint home"><span className="brand-icon"><svg><use href="#icon-flag"/></svg></span>checkpoint<span className="brand-dot">.</span></a>
   <span className="header-note">One day at a time.</span>
-  <div className="header-actions"><Suspense fallback={<span className="display-loading" role="status" aria-label="Loading display preferences"/>}><DisplaySettings/></Suspense>{!user && <button className="new-user-button" onClick={() => openAuth("signup")}>New user</button>}<button onClick={enterOrLeave} id="enter-button" className="header-action"><svg><use href="#icon-edit"/></svg><span>{user ? "Sign out" : "Sign in"}</span></button></div>
+  <button ref={menuButton} type="button" className="mobile-menu-button" aria-label={menuOpen?"Close menu":"Open menu"} aria-expanded={menuOpen} aria-controls="header-menu" onClick={()=>setMenuOpen(!menuOpen)}><svg viewBox="0 0 24 24" aria-hidden="true">{menuOpen?<path d="m6 6 12 12M18 6 6 18"/>:<path d="M4 6h16M4 12h16M4 18h16"/>}</svg></button>
+  <div ref={menuRef} id="header-menu" className="header-actions"><Suspense fallback={<span className="display-loading" role="status" aria-label="Loading display preferences"/>}><DisplaySettings/></Suspense>{!user && <button className="new-user-button" onClick={() => openAuth("signup")}>New user</button>}<button onClick={enterOrLeave} id="enter-button" className="header-action"><svg><use href="#icon-edit"/></svg><span>{user ? "Sign out" : "Sign in"}</span></button></div>
 </div></header>
 <main>
   <StudyStatus daily={board?.dailyStudy} displayName={board?.displayName} timeZone={timeZone} today={today} loading={!board}/>
