@@ -43,6 +43,7 @@ test('independent persistent device sessions share posts; sign-out revokes only 
    if(method==='DELETE'){if(index>=0)sessions.splice(index,1);return new Response(null,{status:204})}
    const match=index<0?[]:[sessions[index]].filter(row=>row.expires_at>q.get('expires_at').slice(3));return Response.json(match);
   }
+  if(table==='checkpoint_breaks')return Response.json([]);
   if(table==='checkpoint_posts'){
    if(method==='POST'){if(!posts.some(row=>row.id===body.id))posts.push({...body,created_at:new Date().toISOString(),post_day:easternDay()});return new Response(null,{status:201})}
    return Response.json(posts.filter(row=>q.get('username')==='eq.'+row.username));
@@ -72,6 +73,6 @@ test('pagination includes same-time rows using the ID as a second cursor key',as
  process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_SECRET_KEY='test-secret';
  const previous=globalThis.fetch,time='2026-10-11T12:00:00+00:00';let paging=false;
  const rows=Array.from({length:51},(_,i)=>({id:'00000000-0000-4000-8000-'+String(100-i).padStart(12,'0'),username:'brother',message:'Test',created_at:time,post_day:'2026-10-11'}));
- globalThis.fetch=async url=>{const u=new URL(url);if(u.pathname.endsWith('checkpoint_users'))return Response.json([{username:'brother',display_name:'Alex'}]);if(u.pathname.endsWith('checkpoint_days'))return Response.json([{post_day:'2026-10-11'}]);if(paging){assert.match(u.searchParams.get('or'),/and\(created_at.eq./);assert.match(u.searchParams.get('or'),/id.lt./);return Response.json(rows.slice(50))}return Response.json(rows)};
+ globalThis.fetch=async url=>{const u=new URL(url);if(u.pathname.endsWith('checkpoint_breaks')||u.searchParams.get('select')==='post_day,study')return Response.json([]);if(u.pathname.endsWith('checkpoint_users'))return Response.json([{username:'brother',display_name:'Alex'}]);if(u.pathname.endsWith('checkpoint_days'))return Response.json([{post_day:'2026-10-11'}]);if(paging){assert.match(u.searchParams.get('or'),/and\(created_at.eq./);assert.match(u.searchParams.get('or'),/id.lt./);return Response.json(rows.slice(50))}return Response.json(rows)};
  try{const response=await board(request('/api/board'));assert.equal(response.status,200);const result=await response.json();assert.equal(result.posts.length,50);paging=true;const next=await (await board(request('/api/board?before='+encodeURIComponent(result.next)))).json();assert.equal(next.posts.length,1);assert.equal(next.next,null);assert.equal((await board(request('/api/board?before=invalid'))).status,400)}finally{globalThis.fetch=previous}
 });

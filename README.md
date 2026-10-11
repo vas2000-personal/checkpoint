@@ -13,7 +13,7 @@ Run `npm ci`, copy `.env.example` to `.env.local`, and set the server-only Supab
 
 Create a Supabase project named `checkpoint`, then run `supabase/schema.sql` once in its SQL editor. For an existing earlier schema, run `supabase/migrations/001_eastern_time.sql` if it still uses UTC, then `002_device_sessions.sql`. For existing legacy posts, run `supabase/backfill-profiles.sql` after the schema migration to preserve their usernames. Original timestamps and posts remain intact.
 
-Database tables use RLS and deny direct anonymous access. Next.js server routes access them with `SUPABASE_SECRET_KEY`; this key is never sent to the browser. All posting writes require a valid device session. All timestamps are stored as UTC instants; daily grouping and display use America/New_York for Eastern Time.
+Database tables use RLS and deny direct anonymous access. Next.js server routes access them with `SUPABASE_SECRET_KEY`; this key is never sent to the browser. Manual posting requires a valid device session; Miss Log syncs use a separate user-scoped bearer key. Timestamps are stored as UTC instants; new daily grouping follows each profile time zone (Eastern by default). Historical day labels stay fixed.
 
 ## Users and devices
 
@@ -28,3 +28,7 @@ Import `vas2000-personal/checkpoint` in Vercel and use its automatic Next.js pre
 Add `checkpoint.vas-anbu.dev` in Vercel's Domains settings. At your DNS provider, add the `checkpoint` CNAME with the exact target Vercel provides. Leave root-domain DNS records alone. Vercel provisions HTTPS after validation.
 
 Before calling the app live, create a real user, post an update, sign in on a second device, and confirm the shared history and independent sign-out. Live Supabase and DNS verification require those external accounts to be accessible to the session.
+
+## Miss Log integration
+
+After the baseline schema, apply the additive upgrade in supabase/miss_log.sql once. It adds study entries, hashed API keys, break intervals and per-user time zones. See [MISS_LOG_API.md](MISS_LOG_API.md) for the request contract and iPhone Home Screen instructions. Keys are provisioned administratively and are never available through username-only sign-in.
