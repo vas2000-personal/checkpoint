@@ -20,7 +20,7 @@ async function api(path,body) {
 }
 function Widget({title,summary,children}){return <RememberedDetails storageKey={title} className="compact-widget"><summary><span><strong>{title}</strong><small>{summary}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary><div className="widget-content">{children}</div></RememberedDetails>}
 export default function Dashboard() {
-  useEffect(()=>{let timer;const reveal=()=>{document.documentElement.classList.add('is-scrolling');clearTimeout(timer);timer=setTimeout(()=>document.documentElement.classList.remove('is-scrolling'),900)};window.addEventListener('scroll',reveal,{passive:true});return()=>{clearTimeout(timer);window.removeEventListener('scroll',reveal);document.documentElement.classList.remove('is-scrolling')}},[]);
+  useEffect(()=>{let timer;const position=()=>{const el=document.documentElement,indicator=document.querySelector('.scroll-indicator');if(!indicator)return;const height=window.innerHeight,total=el.scrollHeight,size=Math.max(32,height*height/total);indicator.style.height=size+'px';indicator.style.transform='translateY('+((height-size)*window.scrollY/Math.max(1,total-height))+'px)';indicator.hidden=total<=height};const reveal=()=>{position();document.documentElement.classList.add('is-scrolling');clearTimeout(timer);timer=setTimeout(()=>document.documentElement.classList.remove('is-scrolling'),900)};position();window.addEventListener('resize',position);window.addEventListener('scroll',reveal,{passive:true});return()=>{clearTimeout(timer);window.removeEventListener('scroll',reveal);window.removeEventListener('resize',position);document.documentElement.classList.remove('is-scrolling')}},[]);
   const [menuOpen,setMenuOpen]=useState(false),[scrolled,setScrolled]=useState(false);
   const menuRef=useRef(null),menuButton=useRef(null);
   useEffect(()=>{const scroll=()=>setScrolled(window.scrollY>60);scroll();window.addEventListener("scroll",scroll,{passive:true});return()=>window.removeEventListener("scroll",scroll)},[]);
@@ -47,7 +47,7 @@ export default function Dashboard() {
   const stats=board?.stats||EMPTY_STATS,today=board?.today,shown=(board?.posts||[]).filter(post=>filter==='all'||post.post_day===today).sort((a,b)=>b.post_day.localeCompare(a.post_day)||b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
   const marker=[[71,205],[130,174],[190,140]][Math.floor((stats.xp%300)/100)]||[71,205];
   const week=today?Array.from({length:7},(_,index)=>{const date=new Date(today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-(6-index));const key=date.toISOString().slice(0,10);return {key,today:index===6,checked:stats.days.includes(key),number:date.getUTCDate(),label:date.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'}).slice(0,1)}}):[];
-  return <><IconLibrary />
+  return <><IconLibrary /><span className="scroll-indicator" aria-hidden="true"/>
 <header className={`site-header${scrolled?" is-scrolled":""}${menuOpen?" menu-open":""}`} onKeyDown={event=>{if(event.key==="Escape"){setMenuOpen(false);menuButton.current?.focus()}}}><div className="header-inner">
   <a className="brand" href="/" aria-label="Checkpoint home"><span className="brand-icon"><svg><use href="#icon-flag"/></svg></span>checkpoint<span className="brand-dot">.</span></a>
   <span className="header-note">One day at a time.</span>

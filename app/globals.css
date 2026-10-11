@@ -124,3 +124,11 @@ html.is-scrolling::-webkit-scrollbar-thumb,html::-webkit-scrollbar-thumb:hover,h
 html[data-contrast=true]{scrollbar-color:var(--ink) transparent}
 html[data-contrast=true]::-webkit-scrollbar-thumb{background-color:var(--ink)}
 
+/* Overlay-style scrolling: no reserved gutter or scrollbar arrow buttons. */
+html{scrollbar-gutter:auto;scrollbar-width:none;overflow-y:auto}
+html::-webkit-scrollbar,body::-webkit-scrollbar{width:0;height:0}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+.scroll-indicator{position:fixed;right:2px;top:0;width:4px;border-radius:999px;background:#829887;pointer-events:none;z-index:60;opacity:0;transition:opacity .2s}
+html.is-scrolling .scroll-indicator{opacity:.8}
+html[data-contrast=true] .scroll-indicator{background:var(--ink)}
+@media(prefers-reduced-motion:reduce){.scroll-indicator{transition:none}}
