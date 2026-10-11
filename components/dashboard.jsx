@@ -1,8 +1,9 @@
 "use client";
-import {Fragment,useCallback,useEffect,useRef,useState} from 'react';
+import {Suspense,lazy,Fragment,useCallback,useEffect,useRef,useState} from 'react';
 import {Icon,IconLibrary} from './icons.jsx';
 import {StudyLine,StudyStatus,HourLabel,StudyWeek,ProfileSettings,HomeScreenTip} from './study.jsx';
 
+const DisplaySettings=lazy(()=>import('./display-settings.jsx'));
 const EMPTY_STATS = {xp:0,streak:0,level:1,days:[],postedToday:false};
 const dateLabel = day => new Date(day+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
 function dayLabel(day,today) {
@@ -43,7 +44,7 @@ export default function Dashboard() {
 <header className="site-header"><div className="header-inner">
   <a className="brand" href="/" aria-label="Checkpoint home"><span className="brand-icon"><svg><use href="#icon-flag"/></svg></span>checkpoint<span className="brand-dot">.</span></a>
   <span className="header-note">One day at a time.</span>
-  <div className="header-actions">{!user && <button className="new-user-button" onClick={() => openAuth("signup")}>New user</button>}<button onClick={enterOrLeave} id="enter-button" className="header-action"><svg><use href="#icon-edit"/></svg><span>{user ? "Sign out" : "Sign in"}</span></button></div>
+  <div className="header-actions"><Suspense fallback={<span className="display-loading" role="status" aria-label="Loading display preferences"/>}><DisplaySettings/></Suspense>{!user && <button className="new-user-button" onClick={() => openAuth("signup")}>New user</button>}<button onClick={enterOrLeave} id="enter-button" className="header-action"><svg><use href="#icon-edit"/></svg><span>{user ? "Sign out" : "Sign in"}</span></button></div>
 </div></header>
 <main>
   <StudyStatus daily={board?.dailyStudy} displayName={board?.displayName} timeZone={timeZone} today={today} loading={!board}/>

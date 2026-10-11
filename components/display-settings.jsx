@@ -1,0 +1,15 @@
+"use client";
+import {useEffect,useRef,useState} from 'react';
+const defaults={dark:false,contrast:false,focus:false,scale:'normal'};
+export default function DisplaySettings(){
+ const [settings,setSettings]=useState(defaults),[open,setOpen]=useState(false);const group=useRef(null),trigger=useRef(null);
+ useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem('checkpoint-display')||'{}');setSettings({...defaults,...saved,scale:['small','normal','large'].includes(saved.scale)?saved.scale:'normal'})}catch{}},[]);
+ useEffect(()=>{if(!open)return;const close=e=>{if(!group.current?.contains(e.target))setOpen(false)};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close)},[open]);
+ function update(next){const value={...settings,...next};setSettings(value);const el=document.documentElement;for(const key of ['dark','contrast','focus'])el.dataset[key]=value[key]?'true':'false';el.dataset.scale=value.scale;try{localStorage.setItem('checkpoint-display',JSON.stringify(value))}catch{}}
+ const icons={dark:settings.dark?<><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></>:<path d="M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z"/>,contrast:<><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></>,focus:settings.focus?<><path d="M5 5l14 14M19 5L5 19"/><circle cx="12" cy="12" r="10"/></>:<><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><circle cx="12" cy="12" r="3"/></>};
+ return <div className="display-controls" role="group" aria-label="Display preferences" ref={group} onKeyDown={e=>{if(e.key==='Escape'){setOpen(false);trigger.current?.focus()}}}>
+ {['dark','contrast'].map(key=><button key={key} type="button" className="display-button" aria-label={key==='dark'?'Dark mode':'High contrast'} aria-pressed={Boolean(settings[key])} title={key==='dark'?'Dark mode':'High contrast'} onClick={()=>update({[key]:!settings[key]})}><svg viewBox="0 0 24 24" aria-hidden="true">{icons[key]}{key==='contrast'&&settings.contrast&&<path d="m15 15 2 2 4-4" strokeWidth="3"/>}</svg></button>)}
+ <div className="scale-control"><button ref={trigger} type="button" className="display-button" aria-label={'Display size: '+settings.scale} aria-expanded={open} aria-controls="display-size-options" title="Display size" onClick={()=>setOpen(!open)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18 8 6l5 12M5 14h6m4-5h6m-3-3v6m-3 5h6"/></svg></button>{open&&<fieldset id="display-size-options" className="scale-options"><legend className="sr-only">Display size</legend>{['small','normal','large'].map(size=><label key={size}><input type="radio" name="display-size" value={size} checked={settings.scale===size} onChange={()=>{update({scale:size});setOpen(false);trigger.current?.focus()}}/>{size[0].toUpperCase()+size.slice(1)}</label>)}</fieldset>}</div>
+ <button type="button" className="display-button" aria-label="Focus mode" aria-pressed={Boolean(settings.focus)} title="Focus mode" onClick={()=>update({focus:!settings.focus})}><svg viewBox="0 0 24 24" aria-hidden="true">{icons.focus}</svg></button>
+ </div>
+}
