@@ -34,17 +34,17 @@ test('independent persistent device sessions share posts; sign-out revokes only 
   const u=new URL(url),table=u.pathname.split('/').at(-1),q=u.searchParams,method=options.method||'GET';
   const body=options.body?JSON.parse(options.body):null;
   if(table==='checkpoint_users'){
-   if(method==='POST'){if(users.some(user=>user.username===body.username))return Response.json({}, {status:409});users.push(body);return new Response(null,{status:204})}
+   if(method==='POST'){if(users.some(user=>user.username===body.username))return Response.json({}, {status:409});users.push(body);return new Response(null,{status:201})}
    return Response.json(users.filter(user=>!q.has('username')||q.get('username')==='eq.'+user.username));
   }
   if(table==='checkpoint_sessions'){
-   if(method==='POST'){sessions.push(body);return new Response(null,{status:204})}
+   if(method==='POST'){sessions.push(body);return new Response(null,{status:201})}
    const index=sessions.findIndex(row=>q.get('token_hash')==='eq.'+row.token_hash);
    if(method==='DELETE'){if(index>=0)sessions.splice(index,1);return new Response(null,{status:204})}
    const match=index<0?[]:[sessions[index]].filter(row=>row.expires_at>q.get('expires_at').slice(3));return Response.json(match);
   }
   if(table==='checkpoint_posts'){
-   if(method==='POST'){if(!posts.some(row=>row.id===body.id))posts.push({...body,created_at:new Date().toISOString(),post_day:easternDay()});return new Response(null,{status:204})}
+   if(method==='POST'){if(!posts.some(row=>row.id===body.id))posts.push({...body,created_at:new Date().toISOString(),post_day:easternDay()});return new Response(null,{status:201})}
    return Response.json(posts.filter(row=>q.get('username')==='eq.'+row.username));
   }
   if(table==='checkpoint_days')return Response.json([...new Set(posts.filter(row=>q.get('username')==='eq.'+row.username).map(row=>row.post_day))].map(post_day=>({post_day})));
