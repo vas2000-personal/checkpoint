@@ -56,6 +56,28 @@ Send the same POST and bearer header with:
 
 The break starts on the current day in the profile's time zone and lasts **through Oct 20 inclusive**. It preserves an existing streak without adding days or XP. It cannot repair gaps before the break. Updates during a break still earn XP normally. The maximum break is one year. Change or end a break from the signed-in profile's settings (“Resume today”). The banner disappears after the final break day.
 
+## Awake status
+
+So the family can see when gir is actually up, send the first keyboard or mouse activity of each study day, in any window, not only Miss Log. Use the same POST and bearer header with:
+
+```json
+{"awake_at":"2026-10-12T07:12:00-04:00","last_active_at":"2026-10-12T14:05:00-04:00","after_idle_min":540}
+```
+
+- **awake_at** (required): the moment of the first activity after the 4 a.m. study-day start. Send it once, as soon as that activity happens. Keep sending the same awake_at for the rest of the study day.
+- **last_active_at** (optional): a later heartbeat. While the user is active, send it at most every 15 minutes. It must be on the same study day as awake_at and not before it.
+- **after_idle_min** (optional): whole minutes with no activity before awake_at, measured from the previous activity. Under 180 means the night never really ended, and the board shows “still up from last night” instead of a wake-up time. Send it with the first request of the day; later values are ignored.
+
+Only these three keys are accepted. Timestamps need an offset or Z, can be no more than five minutes ahead, and can be no more than 36 hours old. The study day is derived from awake_at using the 4 a.m. boundary in the profile time zone. Retries and out-of-order requests are safe: the earliest awake_at and the latest last_active_at are kept, and the still-up flag stays with the earliest awake_at.
+
+Successful response is HTTP 200, with the stored values:
+
+```json
+{"ok":true,"date":"2026-10-12","awake_at":"2026-10-12T11:12:00+00:00","last_active_at":"2026-10-12T18:05:00+00:00"}
+```
+
+Awake updates earn no XP, create no feed post or hourly card, and do not count toward the streak. Send times only, never window titles, app names, keystrokes or screenshots. Until the first awake_at of the day arrives, the board shows a quiet “Not at the desk yet today” after 4 a.m.
+
 ## Profile display and iPhone
 
 The feed shows study counts and last updated time. After 15 minutes without a received sync it displays “app closed”; this is an inactivity indication, not a guarantee the app actually closed. Weekly accuracy is total correct / total questions, rather than an average of daily percentages. The chart covers this study day and the six preceding study days. Weekly totals use only the final/latest snapshot for each day, never the sum of hourly snapshots. The top status bar includes minutes, sessions, questions, correct, accuracy, cards reviewed, target minutes, target status, summary text and last updated time.

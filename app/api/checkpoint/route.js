@@ -24,6 +24,11 @@ export async function POST(request) {
      await database('checkpoint_breaks?on_conflict=username,start_day',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({username,start_day:data.start_day,until_day:data.until_day})});
      return response({ok:true,holiday:true,until:data.until_day});
    }
+   if(data.awake){
+     // Earliest awake_at and latest last_active_at win inside the database, so retries are harmless.
+     const saved=await database('rpc/checkpoint_awake',{method:'POST',body:JSON.stringify({p_username:username,p_day:data.day,p_awake_at:data.awake_at,p_still_up:data.still_up,p_last_active_at:data.last_active_at})});
+     return response({ok:true,date:data.day,awake_at:saved?.awake_at??data.awake_at,last_active_at:saved?.last_active_at??data.last_active_at});
+   }
    const result=await database('rpc/checkpoint_sync',{method:'POST',body:JSON.stringify({p_username:username,p_day:data.day,p_text:data.text,p_study:data.study,p_updated_at:data.updated_at})});
    return response(result);
  }catch(error){const r=fail(error);for(const [k,v] of Object.entries(cors))r.headers.set(k,v);return r}
