@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {studyDay} from '../lib/server.js';
 import {validateSync,validateAwake} from '../lib/study.js';
-import {getBoard,awakeFor} from '../lib/board.js';
+import {getBoard,awakeFor,connectedFor,CONNECTED_MS} from '../lib/board.js';
 import {POST} from '../app/api/checkpoint/route.js';
 const now=new Date('2026-10-12T18:30:00Z'),zone='America/New_York';
 const body={awake_at:'2026-10-12T07:12:00-04:00'};
@@ -60,6 +60,7 @@ test('board shows today’s awake row and falls back to null before the migratio
  globalThis.fetch=async url=>{
   const u=new URL(url),table=u.pathname.split('/').at(-1);
   if(table==='checkpoint_users')return Response.json([{username:'gir',display_name:'Varun',time_zone:zone}]);
+  if(u.searchParams.get('select')==='received_at')return Response.json([]);
   if(table==='checkpoint_awake'){assert.equal(u.searchParams.get('select'),'post_day','only a yes/no is read, never the times');assert.equal(u.searchParams.get('username'),'eq.gir');assert.equal(u.searchParams.get('post_day'),'eq.'+today);return awake()}
   if(['checkpoint_posts','checkpoint_days','checkpoint_breaks','checkpoint_study_days'].includes(table))return Response.json([]);
   throw Error('Unexpected table '+table);
@@ -73,4 +74,21 @@ test('board shows today’s awake row and falls back to null before the migratio
   const board=await getBoard(null,'gir',null);assert.equal(board.awake,false);assert.equal(board.displayName,'Varun');
   awake=()=>Response.json({},{status:500});await assert.rejects(()=>awakeFor('gir',today),{status:502});
  }finally{globalThis.fetch=previous;console.error=quiet}
+});
+test('Not connected: no study sync or awake update in 24 hours, and only a yes/no leaves the server',async()=>{
+ process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_SECRET_KEY='test-server-key';
+ const previous=globalThis.fetch,now=new Date('2026-10-13T15:00:00Z');let last={study:null,awake:null},awakeMissing=false;
+ globalThis.fetch=async url=>{
+  const u=new URL(url),table=u.pathname.split('/').at(-1),since=u.searchParams.get('received_at')?.slice(4);
+  assert.equal(u.searchParams.get('select'),'received_at');assert.equal(since,new Date(+now-CONNECTED_MS).toISOString());
+  if(table==='checkpoint_awake'&&awakeMissing)return Response.json({code:'PGRST205'},{status:404});
+  const t=table==='checkpoint_study_days'?last.study:last.awake;return Response.json(t&&t>=since?[{received_at:t}]:[]);
+ };
+ try{
+  assert.equal(await connectedFor('gir',now),false,'never in touch');
+  last.study='2026-10-12T16:00:00Z';assert.equal(await connectedFor('gir',now),true,'a study sync 23 h ago');
+  last.study='2026-10-12T14:00:00Z';assert.equal(await connectedFor('gir',now),false,'a study sync 25 h ago');
+  last.awake='2026-10-13T09:00:00Z';assert.equal(await connectedFor('gir',now),true,'an awake update counts too');
+  awakeMissing=true;assert.equal(await connectedFor('gir',now),false,'before the awake migration, study syncs alone decide');
+ }finally{globalThis.fetch=previous}
 });

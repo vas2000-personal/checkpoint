@@ -76,7 +76,7 @@ Successful response is HTTP 200, with the stored values:
 {"ok":true,"date":"2026-10-12","awake_at":"2026-10-12T11:12:00+00:00","last_active_at":"2026-10-12T18:05:00+00:00"}
 ```
 
-Awake updates earn no XP, create no feed post or hourly card, and do not count toward the streak. Send times only, never window titles, app names, keystrokes or screenshots. The board shows only an “Awake” status once the day's first awake_at arrives, and nothing before that. The times are stored but never shown or sent to the browser.
+Awake updates earn no XP, create no feed post or hourly card, and do not count toward the streak. Send times only, never window titles, app names, keystrokes or screenshots. The board shows only an “Awake” status once the day's first awake_at arrives, and nothing before that. The times are stored but never shown or sent to the browser. If neither a study sync nor an awake update has arrived for 24 hours, the board shows “Not connected” instead (hidden during a break).
 
 ## Profile display and iPhone
 
