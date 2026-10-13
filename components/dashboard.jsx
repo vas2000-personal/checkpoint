@@ -4,6 +4,7 @@ import {Icon,IconLibrary} from './icons.jsx';
 import {StudyLine,StudyStatus,HourLabel,StudyWeek,ProfileSettings,HomeScreenTip} from './study.jsx';
 
 import RememberedDetails from './remembered-details.jsx';
+import {clock} from '../lib/study.js';
 const DisplaySettings=lazy(()=>import('./display-settings.jsx'));
 const EMPTY_STATS = {xp:0,streak:0,level:1,days:[],postedToday:false};
 const dateLabel = day => new Date(day+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
@@ -76,7 +77,7 @@ export default function Dashboard() {
     <section className="feed" aria-label="Daily updates"><div id="posts">
 {!board ? <><div className="empty loading">{loadError || "Gathering the latest chapters…"}</div>{loadError && <button id="retry" onClick={() => load()}>Try again <Icon name="refresh" /></button>}</> : shown.length ? shown.map((post,index) => <Fragment key={post.id}>
   {(index === 0 || shown[index-1].post_day !== post.post_day) && <div className="post-day-label"><span className="day-dot" />{dayLabel(post.post_day,today)}{post.post_day === today && <span className="today-tag">DAY SAVED</span>}</div>}
-  <article className={`post${index === 0 ? " latest" : ""}`}><div className="post-head"><span className="post-avatar">{board.displayName[0].toUpperCase()}</span><div><strong>{board.displayName}</strong><time dateTime={post.created_at}>{new Date(post.created_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone,timeZoneName:'short'})} · @{post.username}</time></div>{index === 0 && <span className="post-status"><Icon name="check" />Latest checkpoint</span>}</div><HourLabel post={post} timeZone={timeZone}/><p>{post.message}</p><StudyLine post={post} timeZone={timeZone}/><div className="post-footer"><Icon name="flag" />A little further than yesterday.</div></article>
+  <article className={`post${index === 0 ? " latest" : ""}`}><div className="post-head"><span className="post-avatar">{board.displayName[0].toUpperCase()}</span><div><strong>{board.displayName}</strong><time dateTime={post.created_at}>{clock(post.created_at,timeZone,true)} · @{post.username}</time></div>{index === 0 && <span className="post-status"><Icon name="check" />Latest checkpoint</span>}</div><HourLabel post={post} timeZone={timeZone}/><p>{post.message}</p><StudyLine post={post} timeZone={timeZone} today={today}/><div className="post-footer"><Icon name="flag" />A little further than yesterday.</div></article>
 </Fragment>) : <div className="empty">{filter === "today" ? "No update today yet. A fresh checkpoint is waiting." : "The first chapter starts here. Updates will appear as they are posted."}</div>}
 </div><button id="more" className="load-more" hidden={!board?.next} disabled={loading} onClick={() => load(true)}>Earlier chapters <Icon name="down" /></button></section>
     <div className="feed-note"><svg><use href="#icon-star"/></svg> Progress over perfection. Always.</div>
@@ -93,7 +94,7 @@ export default function Dashboard() {
     </Widget><Widget title="This week" summary={`${board?.weekly?.minutes||0} min · ${board?.weekly?.questions||0} questions`}><section className="card week"><div className="card-heading"><div><span className="eyebrow">THE LAST SEVEN DAYS</span><h3>A week of showing up</h3></div></div><div id="week-grid">{week.map(day => <div key={day.key} className={`day${day.today ? " today" : ""}${day.checked ? " checked" : ""}`} title={`${day.key}: ${day.checked ? "Posted an update" : "No update"}`}>{day.label}<b>{day.checked ? <Icon name="check" /> : day.number}</b></div>)}</div><p id="week-summary">{week.filter(day => day.checked).length} of 7 days. The little things are adding up.</p><StudyWeek weekly={board?.weekly}/></section></Widget>
     {user&&board?.selectedUsername===user&&<ProfileSettings timeZone={timeZone} today={today} activeBreak={board.activeBreak} onSave={saveSettings}/>}
     <HomeScreenTip/>
-    <Widget title="For the family" summary="A little window into the day"><section className="family-note"><span className="family-icon"><svg><use href="#icon-heart"/></svg></span><div><h3>A little window into my day.</h3><p>Just open this page to follow along.<br />I'm glad you're here.</p></div></section></Widget>
+    <Widget title="For the family" summary="A little window into the day"><section className="family-note"><span className="family-icon"><svg><use href="#icon-heart"/></svg></span><div><h3>A little window into my day.</h3><p>Just open this page to follow along.<br />I’m glad you’re here.</p></div></section></Widget>
   </aside></div>
   <footer><a className="footer-brand" href="/">checkpoint.</a><p>A little progress, every day.</p><span>Days reset at 4 a.m. · {timeZone.replaceAll('_',' ')}</span></footer>
 </main>

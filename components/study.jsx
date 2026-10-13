@@ -1,13 +1,14 @@
 "use client";
 import {useEffect,useState} from 'react';
 import RememberedDetails from './remembered-details.jsx';
-export function StudyLine({post,timeZone}){
+import {clock,plural} from '../lib/study.js';
+export function StudyLine({post,timeZone,today}){
  const [now,setNow]=useState(null);
  useEffect(()=>{setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(timer)},[]);
  const s=post.study;if(!s)return null;
  const closed=now!==null&&now-Date.parse(post.received_at)>15*60*1000;
  const studying=(post.message||'').startsWith('Studying now. ')&&!closed;
- return <div className="study-details"><div className="study-counts"><span><b>{s.minutes}</b> min</span><span><b>{s.sessions}</b> sessions</span><span><b>{s.questions}</b> questions ({s.questions?Math.round(s.correct/s.questions*100)+'%':'—'} correct)</span><span><b>{s.cards_reviewed}</b> cards</span>{s.target_minutes>0&&<span className={s.target_hit?'target-hit':'target-missed'}>{s.target_hit?'✓ Target hit':'Target missed'} · {s.target_minutes} min</span>}</div>{studying&&<span className="studying-badge">● Studying now</span>}</div>
+ return <div className="study-details"><div className="study-counts"><span><b>{s.minutes}</b> min</span><span><b>{s.sessions}</b> {plural(s.sessions,'session')}</span><span><b>{s.questions}</b> {plural(s.questions,'question')} ({s.questions?Math.round(s.correct/s.questions*100)+'%':'—'} correct)</span><span><b>{s.cards_reviewed}</b> {plural(s.cards_reviewed,'card')}</span>{s.target_minutes>0&&<span className={s.target_hit?'target-hit':'target-missed'}>{s.target_hit?'✓ Target hit':post.post_day===today?'Not hit yet':'Target missed'} · {s.target_minutes} min</span>}</div>{studying&&<span className="studying-badge">● Studying now</span>}</div>
 }
 export function AwakeStatus({awake,connected=true,onBreak=false}){
  if(awake)return <span className="awake-status" role="status"><span className="awake-dot" aria-hidden="true"/>Awake</span>;
@@ -23,8 +24,7 @@ export function StudyStatus({daily,awake,connected,onBreak,displayName,timeZone,
 export function HourLabel({post,timeZone}){
  if(!post.study||!post.bucket_start)return null;
  const start=new Date(post.bucket_start),end=new Date(+start+3600000);
- const fmt=d=>d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone,timeZoneName:'short'});
- return <div className="hour-summary-label">Hourly summary · {fmt(start)}–{fmt(end)}<small>Cumulative totals by the end of this hour · updates as Miss Log syncs</small></div>
+ return <div className="hour-summary-label">Hourly summary · {clock(start,timeZone)}–{clock(end,timeZone,true)}<small>Cumulative totals by the end of this hour · updates as Miss Log syncs</small></div>
 }
 export function StudyWeek({weekly}){
  const [metric,setMetric]=useState('minutes'),days=weekly?.days||[],maximum=Math.max(1,...days.map(d=>d[metric]));
