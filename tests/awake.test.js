@@ -56,21 +56,21 @@ test('awake route stores through its RPC without XP or study posts',async()=>{
 });
 test('board shows today’s awake row and falls back to null before the migration',async()=>{
  process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_SECRET_KEY='test-server-key';
- const previous=globalThis.fetch,today=studyDay(new Date(),zone),row={awake_at:'2026-10-12T11:12:00+00:00',still_up:false,last_active_at:null};let awake=()=>Response.json([row]);
+ const previous=globalThis.fetch,today=studyDay(new Date(),zone),row={post_day:'2026-10-12'};let awake=()=>Response.json([row]);
  globalThis.fetch=async url=>{
   const u=new URL(url),table=u.pathname.split('/').at(-1);
   if(table==='checkpoint_users')return Response.json([{username:'gir',display_name:'Varun',time_zone:zone}]);
-  if(table==='checkpoint_awake'){assert.equal(u.searchParams.get('username'),'eq.gir');assert.equal(u.searchParams.get('post_day'),'eq.'+today);return awake()}
+  if(table==='checkpoint_awake'){assert.equal(u.searchParams.get('select'),'post_day','only a yes/no is read, never the times');assert.equal(u.searchParams.get('username'),'eq.gir');assert.equal(u.searchParams.get('post_day'),'eq.'+today);return awake()}
   if(['checkpoint_posts','checkpoint_days','checkpoint_breaks','checkpoint_study_days'].includes(table))return Response.json([]);
   throw Error('Unexpected table '+table);
  };
  const quiet=console.error;console.error=()=>{};
  try{
-  assert.deepEqual((await getBoard(null,'gir',null)).awakeToday,row);
-  awake=()=>Response.json([]);assert.equal((await getBoard(null,'gir',null)).awakeToday,null);
+  const up=await getBoard(null,'gir',null);assert.equal(up.awake,true);assert.ok(!JSON.stringify(up).includes('awake_at')&&!JSON.stringify(up).includes('last_active'),'no awake times reach the public board');
+  awake=()=>Response.json([]);assert.equal((await getBoard(null,'gir',null)).awake,false);
   // PostgREST answers 404 (PGRST205) while the table is missing from its schema cache.
   awake=()=>Response.json({code:'PGRST205',message:'Could not find the table'},{status:404});
-  const board=await getBoard(null,'gir',null);assert.equal(board.awakeToday,null);assert.equal(board.displayName,'Varun');
+  const board=await getBoard(null,'gir',null);assert.equal(board.awake,false);assert.equal(board.displayName,'Varun');
   awake=()=>Response.json({},{status:500});await assert.rejects(()=>awakeFor('gir',today),{status:502});
  }finally{globalThis.fetch=previous;console.error=quiet}
 });
