@@ -30,7 +30,7 @@ The key is in the separate private local file. Keep it in a private setting, OS 
 }
 ```
 
-Send immediately after changes and every five minutes while Miss Log is open. Send a fresh updated_at timestamp with an offset or Z; the example above illustrates the format, so use the actual current time. Repeated requests within the same local hour update one hourly entry. A new hour creates one new summary card. A separate daily record always stores the newest cumulative totals for the top status bar. Hourly cards are snapshots of the totals reached at that hour, not additional amounts to add together. The first post of that study day, including a manual post, earns 100 XP; later syncs earn none. Older updated_at values cannot overwrite newer totals. A retry still refreshes the last-received heartbeat.
+Send immediately after changes and every five minutes while Miss Log is open. Send a fresh updated_at timestamp with an offset or Z, no more than five minutes ahead; the example above illustrates the format, so use the actual current time. Repeated requests within the same local hour update one hourly entry. A new hour creates one new summary card. A separate daily record always stores the newest cumulative totals for the top status bar. Hourly cards are snapshots of the totals reached at that hour, not additional amounts to add together. The first post of that study day, including a manual post, earns 100 XP; later syncs earn none. Older updated_at values cannot overwrite newer totals. A retry still refreshes the last-received heartbeat.
 
 Study days run from **4 a.m. through 3:59:59 a.m. the following morning**, in the profile time zone (default America/New_York). Reset Miss Log's cumulative minutes, sessions, questions, correct and cards_reviewed at 4 a.m. too. Date may be omitted and is then derived from updated_at using this boundary. Existing clients that send the timestamp's local calendar date are automatically mapped to the previous study date before 4 a.m.; an explicit older date can still update historical totals. Future study dates are rejected. Changing the profile time zone affects new dates, preserving historical saved days. Sign in as gir and use “Your day, your pace” to change the zone.
 
@@ -54,7 +54,7 @@ Send the same POST and bearer header with:
 {"holiday":true,"until":"2026-10-20"}
 ```
 
-The break starts on the current day in the profile's time zone and lasts **through Oct 20 inclusive**. It preserves an existing streak without adding days or XP. It cannot repair gaps before the break. Updates during a break still earn XP normally. The maximum break is one year. Change or end a break from the signed-in profile's settings (“Resume today”). The banner disappears after the final break day.
+Success is HTTP 200 with `{"ok":true,"holiday":true,"until":"2026-10-20"}`. The break starts on the current study day in the profile's time zone and lasts **through Oct 20 inclusive**. It preserves an existing streak without adding days or XP. It cannot repair gaps before the break. Updates during a break still earn XP normally. The maximum break is one year. Change or end a break from the signed-in profile's settings (“Resume today”). The banner disappears after the final break day.
 
 ## Awake status
 

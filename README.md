@@ -7,11 +7,18 @@ Target domain: https://checkpoint.vas-anbu.dev
 
 ## Development
 
-Run `npm ci`, copy `.env.example` to `.env.local`, and set the server-only Supabase connection. Run `npm run dev`. `npm test` checks validation, Eastern day boundaries, persistent sessions, device-specific sign-out, shared posting, and pagination. `npm run build` builds the production Next.js app; `npm start` serves it.
+Run `npm ci`, copy `.env.example` to `.env.local`, and set the server-only Supabase connection. Run `npm run dev`. `npm test` checks validation, Eastern day boundaries and the 4 a.m. study day, persistent sessions, device-specific sign-out, shared posting, pagination, Miss Log syncs, hourly snapshots, breaks and awake status. `npm run build` builds the production Next.js app; `npm start` serves it.
 
 ## Supabase
 
-Create a Supabase project named `checkpoint`, then run `supabase/schema.sql` once in its SQL editor. For an existing earlier schema, run `supabase/migrations/001_eastern_time.sql` if it still uses UTC, then `002_device_sessions.sql`. For existing legacy posts, run `supabase/backfill-profiles.sql` after the schema migration to preserve their usernames. Original timestamps and posts remain intact.
+Create a Supabase project named `checkpoint`. In its SQL editor, run each file once, in this order:
+
+1. `supabase/schema.sql` (new database). For an existing earlier schema instead, run `supabase/migrations/001_eastern_time.sql` if it still uses UTC, then `002_device_sessions.sql`, then `supabase/backfill-profiles.sql` to keep legacy posts' usernames.
+2. `supabase/miss_log.sql`: study entries, API keys, breaks and time zones.
+3. `supabase/hourly_study.sql`: hourly feed cards and daily totals.
+4. `supabase/awake_status.sql`: the daily awake status (safe to rerun).
+
+Steps 2 and 3 are not safe to run twice. Original timestamps and posts remain intact.
 
 Database tables use RLS and deny direct anonymous access. Next.js server routes access them with `SUPABASE_SECRET_KEY`; this key is never sent to the browser. Manual posting requires a valid device session; Miss Log syncs use a separate user-scoped bearer key. Timestamps are stored as UTC instants; new daily grouping follows each profile time zone (Eastern by default). Historical day labels stay fixed.
 
@@ -27,10 +34,8 @@ Import `vas2000-personal/checkpoint` in Vercel and use its automatic Next.js pre
 
 Add `checkpoint.vas-anbu.dev` in Vercel's Domains settings. At your DNS provider, add the `checkpoint` CNAME with the exact target Vercel provides. Leave root-domain DNS records alone. Vercel provisions HTTPS after validation.
 
-Before calling the app live, create a real user, post an update, sign in on a second device, and confirm the shared history and independent sign-out. Live Supabase and DNS verification require those external accounts to be accessible to the session.
+After a new deployment, create a real user, post an update, sign in on a second device, and confirm the shared history and independent sign-out.
 
 ## Miss Log integration
 
-After the baseline schema, apply the additive upgrade in supabase/miss_log.sql once. It adds study entries, hashed API keys, break intervals and per-user time zones. See [MISS_LOG_API.md](MISS_LOG_API.md) for the request contract and iPhone Home Screen instructions. Keys are provisioned administratively and are never available through username-only sign-in.
-
-Apply supabase/hourly_study.sql after miss_log.sql for the hourly feed and separate cumulative daily totals. Study days reset at 4 a.m. in each profile time zone. See MISS_LOG_API.md for client counter-reset guidance.
+The Miss Log tables come from steps 2–4 above. See [MISS_LOG_API.md](MISS_LOG_API.md) for the request contract and iPhone Home Screen instructions. Keys are provisioned administratively and are never available through username-only sign-in. Study days reset at 4 a.m. in each profile time zone.
