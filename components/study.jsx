@@ -1,30 +1,22 @@
 "use client";
 import {useEffect,useState} from 'react';
 import RememberedDetails from './remembered-details.jsx';
-import {easternDay} from '../lib/server.js';
 export function StudyLine({post,timeZone}){
  const [now,setNow]=useState(null);
  useEffect(()=>{setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),30000);return()=>clearInterval(timer)},[]);
  const s=post.study;if(!s)return null;
  const closed=now!==null&&now-Date.parse(post.received_at)>15*60*1000;
  const studying=(post.message||'').startsWith('Studying now. ')&&!closed;
- const time=new Date(post.source_updated_at).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone});
- return <div className="study-details"><div className="study-counts"><span><b>{s.minutes}</b> min</span><span><b>{s.sessions}</b> sessions</span><span><b>{s.questions}</b> questions ({s.questions?Math.round(s.correct/s.questions*100)+'%':'—'} correct)</span><span><b>{s.cards_reviewed}</b> cards</span>{s.target_minutes>0&&<span className={s.target_hit?'target-hit':'target-missed'}>{s.target_hit?'✓ Target hit':'Target missed'} · {s.target_minutes} min</span>}</div>{studying&&<span className="studying-badge">● Studying now</span>}<small className={closed?'sync-status closed':'sync-status'}><span aria-hidden="true">{closed?'○':'●'}</span> Miss Log · {closed?'not studying right now':'last updated '+time.toLowerCase()} {closed&&<span className="sync-help">· last updated {time.toLowerCase()}</span>}</small></div>
+ return <div className="study-details"><div className="study-counts"><span><b>{s.minutes}</b> min</span><span><b>{s.sessions}</b> sessions</span><span><b>{s.questions}</b> questions ({s.questions?Math.round(s.correct/s.questions*100)+'%':'—'} correct)</span><span><b>{s.cards_reviewed}</b> cards</span>{s.target_minutes>0&&<span className={s.target_hit?'target-hit':'target-missed'}>{s.target_hit?'✓ Target hit':'Target missed'} · {s.target_minutes} min</span>}</div>{studying&&<span className="studying-badge">● Studying now</span>}</div>
 }
-const clock=(value,timeZone)=>new Date(value).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone}).replace('AM','a.m.').replace('PM','p.m.');
-export function AwakeStatus({awake,displayName,timeZone,today}){
- const [now,setNow]=useState(null);
- useEffect(()=>{setNow(new Date());const timer=setInterval(()=>setNow(new Date()),60000);return()=>clearInterval(timer)},[]);
- const name=displayName||'Someone',last=awake?.last_active_at?'last active '+clock(awake.last_active_at,timeZone):'';
- if(awake)return <div className="awake-status" role="status"><svg aria-hidden="true"><use href={awake.still_up?'#icon-moon':'#icon-sun'}/></svg><p><strong>{awake.still_up?name+' is still up from last night':name+'’s up — at the desk since '+clock(awake.awake_at,timeZone)}</strong>{last&&<small>{last}</small>}</p></div>;
- // Between midnight and 4 a.m. the study day has not started yet, so stay quiet.
- if(!now||!today||easternDay(now,timeZone)!==today)return null;
- return <div className="awake-status quiet"><svg aria-hidden="true"><use href="#icon-sun"/></svg><p><span>Not at the desk yet today</span></p></div>;
+export function AwakeStatus({awake}){
+ if(!awake)return null;
+ return <span className="awake-status" role="status"><span className="awake-dot" aria-hidden="true"/>Awake</span>;
 }
 export function StudyStatus({daily,awake,displayName,timeZone,today,loading}){
  const s=daily?.study;
  const cells=[['Minutes',s?.minutes],['Sessions',s?.sessions],['Questions',s?.questions],['Correct',s?String(s.correct)+' / '+s.questions:undefined],['Accuracy',s?.questions?Math.round(s.correct/s.questions*100)+'%':undefined],['Cards reviewed',s?.cards_reviewed],...(s&&s.target_minutes===0?[]:[['Daily target',s?s.target_minutes+' min':undefined],['Target status',s?(s.target_hit?'Hit ✓':'Not hit yet'):undefined]])];
- return <section className="study-status-bar" aria-label="Cumulative study status"><div className="study-status-heading"><div><span className="eyebrow">TODAY’S STUDY TOTALS</span><strong>{displayName||'Your study day'}{today&&' · '+new Date(today+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}</strong></div><span>Resets at 4 a.m. · {timeZone.replaceAll('_',' ')}</span></div>{!loading&&<AwakeStatus awake={awake} displayName={displayName} timeZone={timeZone} today={today}/>}<RememberedDetails storageKey="study-metrics" className="study-metric-details"><summary><span className="study-quick-totals">{loading?"Loading totals…":`${s?.minutes||0} min · ${s?.questions||0} questions · ${s?.cards_reviewed||0} cards`}</span><span className="metric-expand">Details</span></summary><div className="study-status-grid">{cells.map(([label,value])=><div key={label}><small>{label}</small><b>{value===undefined?(loading?'—':label==='Accuracy'||label==='Daily target'||label==='Target status'?'—':0):value}</b></div>)}</div></RememberedDetails>{daily?<><p className="study-status-text">{daily.message}</p><StudyLine post={daily} timeZone={timeZone}/></>:<p className="study-status-text">{loading?'Loading today’s totals…':'Waiting for Miss Log’s first sync this study day.'}</p>}</section>
+ return <section className="study-status-bar" aria-label="Cumulative study status"><div className="study-status-heading"><div><span className="eyebrow">TODAY’S STUDY TOTALS</span><strong>{displayName||'Your study day'}{!loading&&<AwakeStatus awake={awake}/>}{today&&' · '+new Date(today+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}</strong></div><span>Resets at 4 a.m. · {timeZone.replaceAll('_',' ')}</span></div><RememberedDetails storageKey="study-metrics" className="study-metric-details"><summary><span className="study-quick-totals">{loading?"Loading totals…":`${s?.minutes||0} min · ${s?.questions||0} questions · ${s?.cards_reviewed||0} cards`}</span><span className="metric-expand">Details</span></summary><div className="study-status-grid">{cells.map(([label,value])=><div key={label}><small>{label}</small><b>{value===undefined?(loading?'—':label==='Accuracy'||label==='Daily target'||label==='Target status'?'—':0):value}</b></div>)}</div></RememberedDetails>{daily?<><p className="study-status-text">{daily.message}</p><StudyLine post={daily} timeZone={timeZone}/></>:<p className="study-status-text">{loading?'Loading today’s totals…':'Waiting for Miss Log’s first sync this study day.'}</p>}</section>
 }
 export function HourLabel({post,timeZone}){
  if(!post.study||!post.bucket_start)return null;

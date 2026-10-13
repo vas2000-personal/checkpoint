@@ -58,7 +58,7 @@ The break starts on the current day in the profile's time zone and lasts **throu
 
 ## Awake status
 
-So the family can see when gir is actually up, send the first keyboard or mouse activity of each study day, in any window, not only Miss Log. Use the same POST and bearer header with:
+So the family can see that gir is up, send the first keyboard or mouse activity of each study day, in any window, not only Miss Log. Use the same POST and bearer header with:
 
 ```json
 {"awake_at":"2026-10-12T07:12:00-04:00","last_active_at":"2026-10-12T14:05:00-04:00","after_idle_min":540}
@@ -66,7 +66,7 @@ So the family can see when gir is actually up, send the first keyboard or mouse 
 
 - **awake_at** (required): the moment of the first activity after the 4 a.m. study-day start. Send it once, as soon as that activity happens. Keep sending the same awake_at for the rest of the study day.
 - **last_active_at** (optional): a later heartbeat. While the user is active, send it at most every 15 minutes. It must be on the same study day as awake_at and not before it.
-- **after_idle_min** (optional): whole minutes with no activity before awake_at, measured from the previous activity. Under 180 means the night never really ended, and the board shows “still up from last night” instead of a wake-up time. Send it with the first request of the day; later values are ignored.
+- **after_idle_min** (optional): whole minutes with no activity before awake_at, measured from the previous activity. Under 180 marks the day as still up from last night (stored, not shown). Send it with the first request of the day; later values are ignored.
 
 Only these three keys are accepted. Timestamps need an offset or Z, can be no more than five minutes ahead, and can be no more than 36 hours old. The study day is derived from awake_at using the 4 a.m. boundary in the profile time zone. Retries and out-of-order requests are safe: the earliest awake_at and the latest last_active_at are kept, and the still-up flag stays with the earliest awake_at.
 
@@ -76,10 +76,10 @@ Successful response is HTTP 200, with the stored values:
 {"ok":true,"date":"2026-10-12","awake_at":"2026-10-12T11:12:00+00:00","last_active_at":"2026-10-12T18:05:00+00:00"}
 ```
 
-Awake updates earn no XP, create no feed post or hourly card, and do not count toward the streak. Send times only, never window titles, app names, keystrokes or screenshots. Until the first awake_at of the day arrives, the board shows a quiet “Not at the desk yet today” after 4 a.m.
+Awake updates earn no XP, create no feed post or hourly card, and do not count toward the streak. Send times only, never window titles, app names, keystrokes or screenshots. The board shows only an “Awake” status once the day's first awake_at arrives, and nothing before that. The times are stored but never shown or sent to the browser.
 
 ## Profile display and iPhone
 
-The feed shows study counts and last updated time. After 15 minutes without a received sync it displays “app closed”; this is an inactivity indication, not a guarantee the app actually closed. Weekly accuracy is total correct / total questions, rather than an average of daily percentages. The chart covers this study day and the six preceding study days. Weekly totals use only the final/latest snapshot for each day, never the sum of hourly snapshots. The top status bar includes minutes, sessions, questions, correct, accuracy, cards reviewed, target minutes, target status, summary text and last updated time.
+The feed shows study counts, with a “Studying now” badge while syncs carry that prefix and arrive within 15 minutes. It doesn't show when the last update arrived. Weekly accuracy is total correct / total questions, rather than an average of daily percentages. The chart covers this study day and the six preceding study days. Weekly totals use only the final/latest snapshot for each day, never the sum of hourly snapshots. The top status bar includes minutes, sessions, questions, correct, accuracy, cards reviewed, target minutes, target status, summary text and last updated time.
 
 In Safari on iPhone, use Share → Add to Home Screen. Checkpoint has a standalone manifest, app icons, safe-area spacing and refreshes when brought back to the foreground. Internet access is required. iOS can suspend apps in the background: the endpoint does not make Miss Log run while closed, so sync only occurs while Miss Log is able to send requests.
