@@ -1,5 +1,7 @@
 # Checkpoint
 
+[![CI](https://github.com/vas2000-personal/checkpoint/actions/workflows/ci.yml/badge.svg)](https://github.com/vas2000-personal/checkpoint/actions/workflows/ci.yml)
+
 A Next.js 16 App Router application with React 19, Supabase persistence, and Vercel hosting. Users share daily progress; family follows along on the main page. Includes the original Pip fox mascot, SVG icons, self-hosted fonts, daily XP, streaks, and EDT/EST day boundaries.
 
 Target repository: https://github.com/vas2000-personal/checkpoint
@@ -8,6 +10,8 @@ Target domain: https://checkpoint.vas-anbu.dev
 ## Development
 
 Run `npm ci`, copy `.env.example` to `.env.local`, and set the server-only Supabase connection. Run `npm run dev`. `npm test` checks validation, Eastern day boundaries, persistent sessions, device-specific sign-out, shared posting, and pagination. `npm run build` builds the production Next.js app; `npm start` serves it.
+
+The suite lives in `tests/`, one file per concern. `server.test.js` covers username validation, bounded request bodies, same-origin writes, Eastern calendar conversion with 4 a.m. study days, independent device sessions where sign-out revokes only one of them, and pagination that falls back to the row ID when two rows share a timestamp. `study.test.js` covers Miss Log sync validation and the privacy boundary on what a sync may carry, time zones and DST with inclusive breaks, weekly accuracy weighting across empty days, and the user-scoped bearer route with its preflight. `hourly.test.js` covers the 4 a.m. study-day boundary through winter, summer and the DST changeovers, date normalization, weekly totals taken from the latest daily snapshot rather than summed hourly rows, and today’s status loading independently of feed pagination. `awake.test.js` covers which fields an awake update accepts, how a wake time maps to a study day, storage through the RPC without awarding XP, and the rule that only a yes/no about being connected ever leaves the server. `format.test.js` covers time wording and singular counts. `npm run css:check` audits the stylesheet on its own, outside the test run.
 
 ## Supabase
 

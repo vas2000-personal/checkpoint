@@ -1,0 +1,21 @@
+name: Live check
+# Scheduled only, never on pull_request, so a production hiccup cannot block a merge.
+# When it does break it fails loudly: no continue-on-error here.
+on:
+  schedule:
+    - cron: '40 11 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/live-check.mjs
+        env:
+          CHECKPOINT_URL: https://checkpoint.vas-anbu.dev
