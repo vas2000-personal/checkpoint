@@ -32,7 +32,7 @@ test('a malformed secret returns false and never throws',async()=>{
   assert.equal(await verifyPassphrase(PASSPHRASE,bogus),false,String(bogus));
  assert.equal(await verifyPassphrase(null,stored),false);
 });
-test('verification honours the parameters stored in the secret, not the current constants',async()=>{
+test('verification honors the parameters stored in the secret, not the current constants',async()=>{
  const salt=Buffer.alloc(16,7),n=1024;
  const key=await new Promise((resolve,reject)=>scrypt(PASSPHRASE,salt,64,{N:n,r:8,p:1,maxmem:1<<24},(error,value)=>error?reject(error):resolve(value)));
  const cheap=`scrypt$${n}$8$1$${salt.toString('hex')}$${key.toString('hex')}`;

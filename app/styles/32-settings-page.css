@@ -1,0 +1,106 @@
+/* The /settings route. Every panel carries .card .profile-settings as well, so it inherits the
+   surfaces, the label and input sizing, the dark and high-contrast lists and the surface-colored
+   focus rim this sheet already maintains for the pace card; only the new controls are new CSS, and
+   they are written in tokens (--paper/--ink/--muted/--green/--line) so all twenty accent x theme
+   combinations come out of lib/prefs.js without one hard-coded color here. */
+.settings-head{margin:1.5rem 0 0}
+.settings-head h1{font:500 clamp(1.75rem,3.2vw,2.5rem)/1.15 var(--display);letter-spacing:-0.05rem;margin:.375rem 0 .5rem}
+.settings-head p{max-width:34rem}
+.settings-back{display:inline-flex;align-items:center;gap:.5rem;min-height:2.75rem;font-weight:700}
+.settings-back svg{width:1rem;height:1rem;transform:rotate(180deg)}
+/* Horizontally scrollable, never wrapped: at 320px a wrap puts two cramped rows of pills above the
+   panel. Padding and scroll-padding both clear the 0.4375rem focus rim, because overflow-x makes
+   this a scroll container that would otherwise crop the ring off the first and last pill. */
+.settings-nav{margin:1.25rem 0 1.5rem}
+.settings-nav ul{display:flex;gap:.5rem;list-style:none;margin:0;padding:.4375rem;overflow-x:auto;scroll-padding:.4375rem;overscroll-behavior-x:contain}
+.settings-nav li{flex:0 0 auto}
+.settings-nav a{display:inline-flex;align-items:center;min-height:2.75rem;padding:.5rem .9375rem;border:0.0625rem solid var(--line);border-radius:999px;background:var(--paper);color:var(--muted);font-size:.8125rem;font-weight:700;white-space:nowrap}
+.settings-nav a[aria-current=page]{background:var(--green);color:var(--paper);border-color:var(--green);font-weight:800}
+.settings-body{display:grid;gap:1.125rem;max-width:46rem}
+.settings-panel{margin-top:0}
+.settings-panel>h3+p{margin-top:-0.625rem}
+.settings-fields{display:grid;gap:.75rem;margin-top:1.25rem}
+.settings-field{display:grid;gap:.375rem}
+.settings-hint{color:var(--muted);font-size:.8125rem;line-height:1.6}
+.settings-status{color:var(--green);font-size:.8125rem;font-weight:700;margin-top:.75rem;min-height:1.25rem}
+.settings-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.625rem;margin-top:1.25rem}
+.settings-switch{display:flex;align-items:center;justify-content:space-between;gap:1rem;width:100%;min-height:3.25rem;padding:.75rem .9375rem;border:0.0625rem solid var(--line);border-radius:.75rem;background:var(--paper);color:var(--ink);text-align:left}
+.settings-switch strong{display:block;font-size:.9375rem}
+.settings-switch .settings-hint{display:block;margin-top:.1875rem}
+.settings-switch-state{flex-shrink:0;min-width:3rem;padding:.3125rem .625rem;border:0.0625rem solid var(--line);border-radius:999px;background:var(--sage);color:var(--ink);font-size:.75rem;font-weight:800;text-align:center}
+.settings-switch[aria-pressed=true] .settings-switch-state{background:var(--green);color:var(--paper);border-color:var(--green)}
+.settings-choices{display:flex;flex-wrap:wrap;gap:.5rem}
+.settings-choice{min-height:2.75rem;padding:.5rem .9375rem;border:0.0625rem solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink);font-size:.8125rem;font-weight:600}
+.settings-choice[aria-pressed=true]{background:var(--green);color:var(--paper);border-color:var(--green);font-weight:800}
+/* A native radio, not a hidden input behind a swatch: it keeps the arrow-key group semantics and the
+   one shared focus ring, and the whole row is the 44px target because the label wraps the input. */
+.accent-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.5rem;margin:0;padding:0;border:0}
+.accent-option{display:flex;align-items:center;gap:.625rem;min-height:2.75rem;padding:.625rem;border:0.0625rem solid var(--line);border-radius:.75rem;background:var(--paper);color:var(--ink);font-size:.8125rem;font-weight:700;cursor:pointer}
+/* 24px square, absolute, the way .pass-check input[type=checkbox] in 28-passphrase.css is pinned:
+   the row is the 44px target, but the house pattern is that a tick box carries the SC 2.5.8 floor
+   itself rather than opting out of it, and a rem box would shrink to 21px at the Small scale.
+   min-height is PINNED to the same 24px rather than dropped: .profile-settings input in
+   07-typography-scale.css sets 2.75rem for the real fields, and every panel is a .profile-settings,
+   so leaving it unset stretched the radio to a 24x44 oval instead of a circle. */
+.accent-option input{width:24px;height:24px;min-width:24px;min-height:24px;padding:0;margin:0;flex-shrink:0;accent-color:var(--green)}
+.accent-option:has(input:checked){border-color:var(--green);box-shadow:inset 0 0 0 0.0625rem var(--green)}
+.accent-swatch{width:1.5rem;height:1.5rem;border-radius:50%;flex-shrink:0;border:0.0625rem solid var(--line);background:var(--swatch,#2e513e)}
+.accent-option[data-accent=ocean]{--swatch:#1d5a73}
+.accent-option[data-accent=plum]{--swatch:#6b3566}
+.accent-option[data-accent=clay]{--swatch:#8a4a24}
+.accent-option[data-accent=ink]{--swatch:#334652}
+html[data-dark=true] .accent-option{--swatch:#a7c99b}
+html[data-dark=true] .accent-option[data-accent=ocean]{--swatch:#8fcbe3}
+html[data-dark=true] .accent-option[data-accent=plum]{--swatch:#dcb0e0}
+html[data-dark=true] .accent-option[data-accent=clay]{--swatch:#e8b48d}
+html[data-dark=true] .accent-option[data-accent=ink]{--swatch:#c5d3dd}
+.settings-meta{display:grid;gap:.625rem;margin:1.25rem 0 0;padding:0}
+.settings-meta>div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem;padding:.625rem .75rem;border:0.0625rem solid var(--line);border-radius:.5rem;background:var(--paper)}
+.settings-meta dt{color:var(--muted);font-size:.8125rem;font-weight:700}
+.settings-meta dd{margin:0;color:var(--ink);font-size:.8125rem;font-weight:700}
+/* Pip sits beside the copy until the copy would be a word a line: at the Large scale on a 320px
+   phone the text column is narrower than the fox, so the row wraps and he takes his own line. */
+.settings-empty{display:flex;flex-wrap:wrap;align-items:flex-start;gap:1rem}
+.settings-empty>div{flex:1 1 11rem;min-width:0}
+.settings-empty img{width:4rem;height:4.6875rem;object-fit:contain;flex-shrink:0}
+.settings-empty h3{margin-bottom:.5rem}
+.settings-count{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .5rem;border-radius:999px;background:var(--sage);color:var(--ink);font-size:.75rem;font-weight:800}
+/* The board's own tabs, so a phone can leave Settings without hunting for the header link. The
+   colors are stated here at the top level; only the layout is inside the breakpoint. */
+.settings-bottom-nav{display:none;gap:.25rem;border-top:0.0625rem solid var(--line);background:var(--bg)}
+/* The icon-over-label stack and the 3.5rem slot are the board's own bottom nav (33-board-tabs.css):
+   the two bars sit at the same screen position, so one of them having icons and a shorter slot was
+   the other half of the inconsistency the shared SLOTS table in components/tabs/slugs.js fixes. */
+.settings-bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1875rem;min-height:2.75rem;padding:.375rem .25rem;border-radius:.5rem;color:var(--muted);font-size:.75rem;font-weight:700;text-align:center}
+.settings-bottom-nav a svg{width:1.375rem;height:1.375rem}
+/* --green, not --sage, for exactly the reason 33-board-tabs.css gives for the board's own bottom
+   nav: --sage on --bg measured 1.08:1 light, 1.60:1 dark, 1.16:1 high contrast and 1.32:1
+   dark+high contrast, and in BOTH high-contrast themes the idle links are --ink too, so that
+   invisible pill was the current slot's only distinction - for the readers who turned high contrast
+   on. --green against --bg clears 3:1 in all four themes and --paper is the ink each pairs with it. */
+.settings-bottom-nav a[aria-current=page]{background:var(--green);color:var(--paper)}
+@media(max-width:760px){
+ .settings-bottom-nav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;padding:.375rem max(.5rem,env(safe-area-inset-right)) max(.375rem,env(safe-area-inset-bottom)) max(.5rem,env(safe-area-inset-left))}
+ .settings-bottom-nav a{flex:1 1 0;min-width:0;height:3.5rem}
+ .settings-main{padding-bottom:6rem}
+}
+@media(max-width:600px){.settings-fields{gap:.625rem}.settings-switch{padding:.6875rem .75rem}}
+.settings-group-label{display:block;font-size:.8125rem;font-weight:700}
+/* .settings-save is written for <button>; the two export links are anchors, and an inline box drops
+   the 44px height the rule gives everything else. */
+a.settings-save{display:inline-flex;align-items:center;justify-content:center;gap:.5rem}
+.settings-reveal{margin-top:1.25rem}
+.settings-reveal>summary{min-height:2.75rem;display:flex;align-items:center;gap:.375rem;list-style:none;font-size:.8125rem;font-weight:700;cursor:pointer}
+.settings-reveal>summary::-webkit-details-marker{display:none}
+.settings-reveal>summary svg{width:1rem;height:1rem}
+.settings-reveal[open]>summary svg{transform:rotate(180deg)}
+.settings-reveal p{margin-top:.5rem}
+.settings-reveal ol{margin:.5rem 0 0;padding-left:1.25rem;color:var(--muted);font-size:.8125rem;line-height:1.7}
+/* A FAILED SAVE HAS TO READ AS AN ERROR IN ALL FOUR THEMES. Every panel's alert paragraph is styled
+   by .profile-settings p[role=alert] (#9b4b3e) in the default theme, but the themed :is(p,...) text
+   lists in 11-display-prefs.css are more specific, so in dark and in both high-contrast themes the
+   brick red lost to ordinary body copy and a failed Miss Log, day or account save read as a plain
+   sentence. Restated here exactly as 28-passphrase.css restates #join-error, which had the same bug.
+   The alert markup is unchanged: the class was never missing, the cascade was. */
+html[data-dark=true] .profile-settings p[role=alert]{color:#f0a98f}
+html[data-contrast=true] .profile-settings p[role=alert]{color:var(--ink)}

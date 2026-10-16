@@ -18,7 +18,6 @@ html[data-dark=true] .stat-icon.amber{background:#493b24;color:#f4c274}
 html[data-dark=true] .stat-icon.sage{background:#30483a;color:#bcd9b7}
 html[data-dark=true] .stat-icon.rose{background:#49342c;color:#edbaa1}
 html[data-dark=true] .study-bar-track{background:#304538;border:1px solid #829887}
-html[data-dark=true] .study-bar-track i,html[data-dark=true] .study-bar-column:last-child .study-bar-track i{background:#a7c99b}
 html[data-dark=true] :is(input,textarea)::placeholder{color:#bdcbbd;opacity:1}
 html[data-dark=true][data-contrast=true] :is(.feed-heading h2 span,.brand-dot,.datebox,.today-status,.mascot-note,.art-label,.profile-selector label,.empty,.filter-tabs button,.chart-toggle button,.new-user-button,h1 em){color:#fff}
 html[data-dark=true][data-contrast=true] :is(.filter-tabs button.active,.chart-toggle button.active){background:#b8efb6;color:#000}
