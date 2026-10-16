@@ -1,124 +1,54 @@
 "use client";
-import {Suspense,lazy,Fragment,useCallback,useEffect,useRef,useState} from 'react';
-import {Icon,IconLibrary} from './icons.jsx';
-import {StudyLine,StudyStatus,HourLabel,StudyWeek,ProfileSettings,HomeScreenTip} from './study.jsx';
-
-import RememberedDetails from './remembered-details.jsx';
-import {clock} from '../lib/study.js';
-import {api,mergePosts} from '../lib/client.js';
-const DisplaySettings=lazy(()=>import('./display-settings.jsx'));
+import {useRef} from 'react';
+import {IconLibrary} from './icons.jsx';
+import {StudyStatus,ProfileSettings,HomeScreenTip} from './study.jsx';
+import useBoard from './hooks/use-board.js';
+import useToast from './hooks/use-toast.js';
+import useScrollIndicator from './hooks/use-scroll-indicator.js';
+import ErrorBoundary from './error-boundary.jsx';
+import Widget from './widget.jsx';
+import SiteHeader from './site-header.jsx';
+import Hero from './hero.jsx';
+import Scoreboard from './scoreboard.jsx';
+import Feed from './feed.jsx';
+import Adventure from './adventure.jsx';
+import WeekWidget from './week-widget.jsx';
+import EntryDialog from './entry-dialog.jsx';
+import {api} from '../lib/client.js';
 const EMPTY_STATS = {xp:0,streak:0,level:1,days:[],postedToday:false};
-const dateLabel = day => new Date(day+'T12:00:00Z').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'UTC'});
-function dayLabel(day,today) {
-  const date = new Date(day+'T12:00:00Z'),yesterday=new Date(today+'T12:00:00Z');
-  yesterday.setUTCDate(yesterday.getUTCDate()-1);
-  const prefix=day===today?'Today':day===yesterday.toISOString().slice(0,10)?'Yesterday':date.toLocaleDateString('en-US',{weekday:'long',timeZone:'UTC'});
-  return `${prefix} · ${date.toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}`;
-}
-function Widget({title,summary,children}){return <RememberedDetails storageKey={title} className="compact-widget"><summary><span><strong>{title}</strong><small>{summary}</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary><div className="widget-content">{children}</div></RememberedDetails>}
 // initialBoard is the server-rendered board: the family sees real content in the first HTML instead of
 // an empty shell, and the mount fetch is skipped because that payload is already this fresh.
 export default function Dashboard({initialBoard=null}) {
-  useEffect(()=>{let timer;const position=()=>{const el=document.documentElement,indicator=document.querySelector('.scroll-indicator');if(!indicator)return;const height=window.innerHeight,total=el.scrollHeight,size=Math.max(32,height*height/total);indicator.style.height=size+'px';indicator.style.transform='translateY('+((height-size)*window.scrollY/Math.max(1,total-height))+'px)';indicator.hidden=total<=height};const reveal=()=>{position();document.documentElement.classList.add('is-scrolling');clearTimeout(timer);timer=setTimeout(()=>document.documentElement.classList.remove('is-scrolling'),900)};position();window.addEventListener('resize',position);window.addEventListener('scroll',reveal,{passive:true});return()=>{clearTimeout(timer);window.removeEventListener('scroll',reveal);window.removeEventListener('resize',position);document.documentElement.classList.remove('is-scrolling')}},[]);
-  const [menuOpen,setMenuOpen]=useState(false),[scrolled,setScrolled]=useState(false);
-  const menuRef=useRef(null),menuButton=useRef(null);
-  useEffect(()=>{const scroll=()=>setScrolled(window.scrollY>60);scroll();window.addEventListener("scroll",scroll,{passive:true});return()=>window.removeEventListener("scroll",scroll)},[]);
-  useEffect(()=>{if(!menuOpen)return;const close=e=>{if(!menuRef.current?.contains(e.target)&&!menuButton.current?.contains(e.target))setMenuOpen(false)};document.addEventListener("pointerdown",close);return()=>document.removeEventListener("pointerdown",close)},[menuOpen]);
-  const [authMode,setAuthMode]=useState('signin'),[displayName,setDisplayName]=useState('');
-  const [board,setBoard]=useState(initialBoard),[user,setUser]=useState(initialBoard?.currentUser?.username||''),[username,setUsername]=useState(''),[message,setMessage]=useState(''),[filter,setFilter]=useState('all'),[selected,setSelected]=useState(initialBoard?.selectedUsername||'');
-  const [loading,setLoading]=useState(false),[posting,setPosting]=useState(false),[entering,setEntering]=useState(false),[postError,setPostError]=useState(''),[joinError,setJoinError]=useState(''),[loadError,setLoadError]=useState(''),[toast,setToast]=useState('');
-  const modalRef=useRef(null),messageRef=useRef(null),usernameRef=useRef(null),busy=useRef(false),cursor=useRef(initialBoard?.next||null),selectedUser=useRef(''),requestId=useRef(null),toastTimer=useRef(null),token=useRef(0),pages=useRef(initialBoard?1:0),feedKey=useRef(initialBoard?initialBoard.selectedUsername||'':null);
-  const notify=useCallback(text=>{setToast(text);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(''),3500)},[]);
-  // A user-initiated load supersedes an in-flight background poll instead of being dropped by the guard;
-  // whichever request is no longer the newest walks away without touching state.
-  const load=useCallback(async(more=false,userAction=false)=>{
-    if(busy.current&&!userAction)return;
-    const mine=++token.current;busy.current=true;setLoading(true);
-    try {
-      const query=new URLSearchParams();if(more&&cursor.current)query.set('before',cursor.current);if(selectedUser.current)query.set('user',selectedUser.current);
-      const result=await api('/api/board'+(query.size?'?'+query:''));
-      if(mine!==token.current)return;
-      // A refresh re-reads page 1 only, so it must keep the pages already read and leave their cursor alone.
-      const fresh=!more&&(pages.current===0||feedKey.current!==selectedUser.current);
-      if(more)pages.current+=1;else if(fresh)pages.current=1;
-      if(more||fresh||pages.current===1)cursor.current=result.next;
-      feedKey.current=selectedUser.current;
-      setUser(result.currentUser?.username||'');setSelected(result.selectedUsername||'');
-      setBoard(previous=>({...result,next:cursor.current,posts:mergePosts(fresh?[]:previous?.posts||[],result.posts,more)}));
-      setLoadError('');
-    }
-    catch(error){if(mine===token.current)setLoadError(error.message)}
-    finally{if(mine===token.current){busy.current=false;setLoading(false)}}
-  },[]);
-  useEffect(()=>{if(!initialBoard)load();return()=>clearTimeout(toastTimer.current)},[load,initialBoard]);
-  useEffect(()=>{const refresh=()=>{if(!document.hidden&&!modalRef.current?.open)load()};const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);window.addEventListener('pageshow',refresh);document.addEventListener('visibilitychange',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);window.removeEventListener('pageshow',refresh);document.removeEventListener('visibilitychange',refresh)}},[load]);
-  // showModal() would otherwise focus the first focusable child, which is the "checkpoint." home link.
-  function openAuth(mode){setMenuOpen(false);setAuthMode(mode);setJoinError('');modalRef.current.showModal();requestAnimationFrame(()=>usernameRef.current?.focus())}
-  async function enterOrLeave(){setMenuOpen(false);if(user){try{await api('/api/signout',{});setUser('');setMessage('');selectedUser.current='';await load(false,true)}catch(error){notify(error.message)}}else openAuth('signin')}
-  async function submitUsername(event){event.preventDefault();setJoinError('');setEntering(true);try{const result=await api(authMode==='signup'?'/api/signup':'/api/enter',{username:username.trim(),displayName});setUser(result.user.username);selectedUser.current=result.user.username;modalRef.current.close();await load(false,true);requestAnimationFrame(()=>messageRef.current?.focus())}catch(error){setJoinError(error.message)}finally{setEntering(false)}}
-  function addPrompt(prompt){setMessage(previous=>previous.trim()?previous+'\n\n'+prompt:prompt);requestId.current=null;messageRef.current?.focus()}
-  async function submitPost(event){event.preventDefault();if(!message.trim()||!user)return;setPosting(true);setPostError('');requestId.current ||= crypto.randomUUID();try{await api('/api/posts',{username:user,message:message.trim(),id:requestId.current});setMessage('');requestId.current=null;notify('Checkpoint saved. A little further today.');await load(false,true)}catch(error){setPostError(error.message)}finally{setPosting(false)}}
+  const modalRef=useRef(null),feedRef=useRef(null),entryRef=useRef(null);
+  const scrolled=useScrollIndicator();
+  const {toast,notify}=useToast();
+  const {board,user,setUser,selected,setSelected,loading,loadError,load,selectedUser}=useBoard(initialBoard,modalRef);
+  function openAuth(mode){entryRef.current?.open(mode)}
+  async function enterOrLeave(){if(user){try{await api('/api/signout',{});setUser('');feedRef.current?.clearMessage();selectedUser.current='';await load(false,true)}catch(error){notify(error.message)}}else openAuth('signin')}
   const timeZone=board?.timeZone||'America/New_York';
   async function saveSettings(body){await api('/api/settings',body);notify(body.time_zone?'Time zone saved.':'Your pace is saved.');await load(false,true)}
-  const stats=board?.stats||EMPTY_STATS,today=board?.today,shown=(board?.posts||[]).filter(post=>filter==='all'||post.post_day===today).sort((a,b)=>b.post_day.localeCompare(a.post_day)||b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
-  const marker=[[71,205],[130,174],[190,140]][Math.floor((stats.xp%300)/100)]||[71,205];
-  const week=today?Array.from({length:7},(_,index)=>{const date=new Date(today+'T12:00:00Z');date.setUTCDate(date.getUTCDate()-(6-index));const key=date.toISOString().slice(0,10);return {key,today:index===6,checked:stats.days.includes(key),number:date.getUTCDate(),label:date.toLocaleDateString('en-US',{weekday:'short',timeZone:'UTC'}).slice(0,1)}}):[];
+  const stats=board?.stats||EMPTY_STATS,today=board?.today;
   return <><IconLibrary /><span className="scroll-indicator" aria-hidden="true"/>
-<header className={`site-header${scrolled?" is-scrolled":""}${menuOpen?" menu-open":""}`} onKeyDown={event=>{if(event.key==="Escape"){setMenuOpen(false);menuButton.current?.focus()}}}><div className="header-inner">
-  <a className="brand" href="/" aria-label="Checkpoint home"><span className="brand-icon"><svg><use href="#icon-flag"/></svg></span>checkpoint<span className="brand-dot">.</span></a>
-  <span className="header-note">One day at a time.</span>
-  <button ref={menuButton} type="button" className="mobile-menu-button" aria-label={menuOpen?"Close menu":"Open menu"} aria-expanded={menuOpen} aria-controls="header-menu" onClick={()=>setMenuOpen(!menuOpen)}><svg viewBox="0 0 24 24" aria-hidden="true">{menuOpen?<path d="m6 6 12 12M18 6 6 18"/>:<path d="M4 6h16M4 12h16M4 18h16"/>}</svg></button>
-  <div ref={menuRef} id="header-menu" className="header-actions"><Suspense fallback={<span className="display-loading" role="status" aria-label="Loading display preferences"/>}><DisplaySettings/></Suspense>{!user && <button className="new-user-button" onClick={() => openAuth("signup")}>New user</button>}<button onClick={enterOrLeave} id="enter-button" className="header-action"><svg><use href="#icon-edit"/></svg><span>{user ? "Sign out" : "Sign in"}</span></button></div>
-</div></header>
+<SiteHeader scrolled={scrolled} user={user} onAuth={openAuth} onEnterOrLeave={enterOrLeave}/>
 <main aria-busy={!board}>
   {/* The visible h1 sits in a widget that is collapsed by default and removed in focus mode, so the
       page keeps a stable heading here and the hero copy drops out of the outline. */}
   <h1 className="sr-only">A little further, every day.</h1>
-  <StudyStatus daily={board?.dailyStudy} awake={!!board?.awake} connected={board?.connected!==false} onBreak={!!board?.activeBreak} displayName={board?.displayName} timeZone={timeZone} today={today} loading={!board}/>
-  <Widget title="A little further, every day" summary={stats.postedToday?"Today’s checkpoint is saved":"One day at a time · meet Miss Log and Pip"}><section className="intro" aria-label="Welcome to Checkpoint">
-    <div className="hero-copy"><div className="eyebrow"><span className="tiny-line"></span> THE DAILY PROGRESS LOG</div><h1 role="presentation">A little further,<br /><em>every day.</em></h1><p id="hero-subtitle">{board ? `Follow along with ${board.displayName}, one small step at a time.` : "Small wins, honest updates, and a reason to keep going."}</p><div className="hero-meta"><span className="datebox"><svg><use href="#icon-flag"/></svg><span id="date">{today ? dateLabel(today) : ""}</span></span><span id="today-status" className={`today-status${stats.postedToday ? " saved" : ""}`}>{stats.postedToday ? "A checkpoint saved today" : "A new day. A new checkpoint."}</span></div></div>
-    <div className="hero-art"><div className="orbit orbit-one"></div><div className="orbit orbit-two"></div><span className="art-star star-one" aria-hidden="true"><svg><use href="#icon-star"/></svg></span><span className="art-star star-two" aria-hidden="true"><svg><use href="#icon-star"/></svg></span><div className="mascot-ground"></div><div className="mascot-pair"><div className="miss-log-mascot"><img src="/assets/miss-log.png" width="899" height="668" decoding="async" loading="lazy" alt="Miss Log, a cheerful wooden log with bright eyes"/></div><div className="mascot-delivery" role="img" aria-label="Miss Log delivers study progress to Pip"><svg viewBox="0 0 100 30" aria-hidden="true"><path className="delivery-dots" d="M2 15h23m50 0h23"/><rect x="35" y="4" width="30" height="22" rx="4"/><path d="m36 6 14 10L64 6"/></svg></div><div className="pip-mascot"><img className="hero-mascot" src="/assets/pip.webp" alt="Pip, a little fox explorer with a backpack and a trail flag" width="1171" height="1343" decoding="async" loading="lazy"/></div></div><span className="mascot-note">Small wins, delivered.<svg viewBox="0 0 80 25"><path d="M3 5q25 25 62 4m-8-3 10 3-5 6"/></svg></span><div className="art-label"><span className="green-dot"></span> YOUR NEXT CHAPTER IS WAITING</div></div>
-  </section></Widget>
+  <ErrorBoundary fallback={<div className="empty">The study status is taking a break. Everything else is still here.</div>}><StudyStatus daily={board?.dailyStudy} awake={!!board?.awake} connected={board?.connected!==false} onBreak={!!board?.activeBreak} displayName={board?.displayName} timeZone={timeZone} today={today} loading={!board}/></ErrorBoundary>
+  <Widget title="A little further, every day" summary={stats.postedToday?"Today’s checkpoint is saved":"One day at a time · meet Miss Log and Pip"}><Hero board={board} stats={stats} today={today}/></Widget>
   {board?.activeBreak&&<div className="break-banner"><span aria-hidden="true">☕</span><div><strong>On a break till {new Date(board.activeBreak.until_day+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'})}</strong><span>Rest counts too. Your streak is protected through this day.</span></div></div>}
-  <Widget title="Your progress" summary={board?`${stats.xp} XP · ${stats.streak} day streak · level ${stats.level}`:"Loading your progress…"}><section className="stats" aria-label="Progress scoreboard">
-    <div className="stat"><span className="stat-icon"><svg><use href="#icon-star"/></svg></span><div><small>TOTAL EXPERIENCE</small><strong id="xp">{board ? stats.xp : "—"} <em>XP</em></strong></div><span className="stat-detail">Little wins add up</span></div>
-    <div className="stat"><span className="stat-icon amber"><svg><use href="#icon-fire"/></svg></span><div><small>CURRENT STREAK</small><strong id="streak">{board ? stats.streak : "—"} <em>days</em></strong></div><span className="stat-detail">Keep the momentum</span></div>
-    <div className="stat"><span className="stat-icon sage"><svg><use href="#icon-check"/></svg></span><div><small>DAYS OF PROGRESS</small><strong id="days">{board ? stats.days.length : "—"}</strong></div><span className="stat-detail">Proof of showing up</span></div>
-    <div className="stat"><span className="stat-icon rose"><svg><use href="#icon-mountain"/></svg></span><div><small>ADVENTURE LEVEL</small><strong id="level">{board ? stats.level : "—"}</strong></div><span className="stat-detail">Onward & upward</span></div>
-  </section></Widget>
-  <div className="layout"><div className="feed-column">
-    <section id="composer" className="card composer" hidden={!user || (board && board.selectedUsername !== user)}>
-      <div className="card-heading"><div><span className="eyebrow">YOUR DAILY SAVE POINT</span><h2>What moved forward today?</h2></div><svg className="heading-icon"><use href="#icon-edit"/></svg></div>
-      <form id="post-form" onSubmit={submitPost}><label className="sr-only" htmlFor="message">What did you work on today?</label><textarea ref={messageRef} value={message} onChange={event => {setMessage(event.target.value); requestId.current = null;}} id="message" maxLength="2000" required placeholder="Hey, today I worked on…"></textarea><div className="writing-prompts"><span>A place to start:</span><button type="button" data-prompt="Today I worked on " onClick={() => addPrompt("Today I worked on ")}>Worked on…</button><button type="button" data-prompt="A small win today was " onClick={() => addPrompt("A small win today was ")}>A small win…</button><button type="button" data-prompt="Today I learned " onClick={() => addPrompt("Today I learned ")}>Learned…</button></div><div className="compose-footer"><span id="post-hint">{stats.postedToday ? "Day saved. Another update is always welcome." : "First update of the day? That’s 100 XP."}</span><button className="primary" id="post-button" disabled={posting}>{posting ? "Saving your checkpoint…" : <>Save my checkpoint <Icon name="arrow" /></>}</button></div><p id="post-error" role="alert">{postError}</p></form>
-    </section>
-    <div className="profile-selector"><label htmlFor="view-user">Following</label><select id="view-user" value={selected || board?.selectedUsername || ""} onChange={event => {setSelected(event.target.value);selectedUser.current=event.target.value;load(false,true);}}><option value="" disabled>Choose a user</option>{(board?.users||[]).map(profile => <option key={profile.username} value={profile.username}>{profile.display_name} (@{profile.username})</option>)}</select></div><div className="feed-heading"><div><div className="eyebrow">ONE UPDATE AT A TIME</div><h2 id="feed-title">The latest chapters<span>.</span></h2></div><div className="filter-tabs" role="group" aria-label="Filter updates"><button type="button" data-filter="all" className={filter === "all" ? "active" : ""} aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All updates</button><button type="button" data-filter="today" className={filter === "today" ? "active" : ""} aria-pressed={filter === "today"} onClick={() => setFilter("today")}>Today</button></div></div>
-    <section className="feed" aria-label="Daily updates">
-{/* Kept outside the !board branch so a refresh that fails over already-loaded data is still visible. */}
-{loadError && <><div className="empty" role="alert">{loadError}</div><button id="retry" onClick={() => load(false,true)}>Try again <Icon name="refresh" /></button></>}
-<div id="posts">
-{!board ? (loadError ? null : <div className="empty loading">Gathering the latest chapters…</div>) : shown.length ? shown.map((post,index) => <Fragment key={post.id}>
-  {(index === 0 || shown[index-1].post_day !== post.post_day) && <div className="post-day-label"><span className="day-dot" />{dayLabel(post.post_day,today)}{post.post_day === today && <span className="today-tag">DAY SAVED</span>}</div>}
-  <article className={`post${index === 0 ? " latest" : ""}`}><div className="post-head"><span className="post-avatar">{board.displayName[0].toUpperCase()}</span><div><strong>{board.displayName}</strong><time dateTime={post.created_at}>{clock(post.created_at,timeZone,true)} · @{post.username}</time></div>{index === 0 && <span className="post-status"><Icon name="check" />Latest checkpoint</span>}</div><HourLabel post={post} timeZone={timeZone}/><p>{post.message}</p><StudyLine post={post} timeZone={timeZone} today={today}/><div className="post-footer"><Icon name="flag" />A little further than yesterday.</div></article>
-</Fragment>) : <div className="empty">{filter === "today" ? "No update today yet. A fresh checkpoint is waiting." : "The first chapter starts here. Updates will appear as they are posted."}</div>}
-</div><button id="more" className="load-more" hidden={!board?.next} disabled={loading} onClick={() => load(true,true)}>Earlier chapters <Icon name="down" /></button></section>
-    <div className="feed-note"><svg><use href="#icon-star"/></svg> Progress over perfection. Always.</div>
+  <Widget title="Your progress" summary={board?`${stats.xp} XP · ${stats.streak} day streak · level ${stats.level}`:"Loading your progress…"}><Scoreboard board={board} stats={stats}/></Widget>
+  <div className="layout"><div className="feed-column"><ErrorBoundary fallback={<div className="empty">The chapters could not be shown right now. Reload the page to try again.</div>}><Feed ref={feedRef} board={board} user={user} today={today} timeZone={timeZone} stats={stats} loading={loading} loadError={loadError} load={load} selected={selected} setSelected={setSelected} selectedUser={selectedUser} notify={notify}/></ErrorBoundary>
   </div>
   <aside>
-    <Widget title="Adventure" summary={board?`Level ${stats.level} · ${stats.xp%300} / 300 XP toward the next level`:"Loading the adventure…"}><section className="card adventure"><div className="card-heading"><div><span className="eyebrow">THE BIGGER PICTURE</span><h2>{board ? `${board.displayName}’s adventure` : "Your adventure"}</h2></div><span className="pill" id="level-pill">LEVEL {board?String(stats.level).padStart(2,"0"):"—"}</span></div>
-      <div className="trail-scene"><svg viewBox="0 0 340 230" role="img" aria-label="Progress trail to your next level"><defs><linearGradient id="sky" x2="0" y2="1"><stop stopColor="#314f42"/><stop offset="1" stopColor="#61755d"/></linearGradient></defs><rect width="340" height="230" fill="url(#sky)"/><circle cx="254" cy="54" r="23" fill="#dec18b"/><path d="m-20 160 100-86 72 88 43-39 80 86H-20" fill="#5d7461"/><path d="m150 185 104-80 100 82v70H150" fill="#758773"/><path d="M-10 210Q70 140 150 208T360 175v70H-10" fill="#87977b"/><path d="M19 235Q79 200 130 174T188 142T253 90" fill="none" stroke="#decfaa" strokeWidth="14" strokeLinecap="round"/><path d="M19 235Q79 200 130 174T188 142T253 90" fill="none" stroke="#687b5f" strokeWidth="1.5" strokeDasharray="3 7"/>
-        <g fill="#314f42"><path d="m38 151 14-30 14 30H38m3 10 11-23 11 23H41"/><path d="m289 195 13-28 13 28h-26m3 9 10-23 10 23h-20"/></g><path d="M253 90V47" stroke="#f2e9d9" strokeWidth="2"/><path d="M254 48h23l-5 7 5 7h-23Z" fill="#d9bc7d"/>
-        <circle cx="71" cy="205" r="7" fill="#f0e6cd"/><circle cx="130" cy="174" r="7" fill="#f0e6cd"/><circle cx="190" cy="140" r="7" fill="#f0e6cd"/>
-        <g id="trail-marker" transform={`translate(${marker[0]} ${marker[1]})`}><circle r="15" fill="#f2e7cc" stroke="#314f42" strokeWidth="4"/><path d="m-5 0 3 3 7-7" stroke="#314f42" strokeWidth="2" fill="none" strokeLinecap="round"/></g></svg>
-      <span className="trail-caption">THE CONSISTENCY TRAIL <span>01</span></span><span className="trail-location" id="trail-location">{stats.xp % 300 === 0 ? "A new trail begins" : "One checkpoint closer"}</span></div>
-      <div className="level-progress"><div><strong id="next-level">Next stop: level {board ? stats.level + 1 : "—"}</strong><span id="xp-next">{board ? stats.xp % 300 : "—"} / 300 XP</span></div><div className="bar"><i id="progress-bar" style={{width:`${stats.xp % 300 / 3}%`}} /></div><p>A little work. A little XP. A little further.</p><small>100 XP per day you post · 300 XP per level</small></div>
-    </section>
-    </Widget><Widget title="This week" summary={board?`${board.weekly?.minutes||0} min · ${board.weekly?.questions||0} questions`:"Loading this week…"}><section className="card week"><div className="card-heading"><div><span className="eyebrow">THE LAST SEVEN DAYS</span><h3>A week of showing up</h3></div></div><div id="week-grid">{week.map(day => <div key={day.key} className={`day${day.today ? " today" : ""}${day.checked ? " checked" : ""}`} title={`${day.key}: ${day.checked ? "Posted an update" : "No update"}`}>{day.label}<b>{day.checked ? <Icon name="check" /> : day.number}</b></div>)}</div><p id="week-summary">{board ? `${week.filter(day => day.checked).length} of 7 days. The little things are adding up.` : "—"}</p><StudyWeek weekly={board?.weekly}/></section></Widget>
+    <Widget title="Adventure" summary={board?`Level ${stats.level} · ${stats.xp%300} / 300 XP toward the next level`:"Loading the adventure…"}><ErrorBoundary fallback={<div className="empty">The trail could not be drawn right now.</div>}><Adventure board={board} stats={stats}/></ErrorBoundary></Widget>
+    <Widget title="This week" summary={board?`${board.weekly?.minutes||0} min · ${board.weekly?.questions||0} questions`:"Loading this week…"}><ErrorBoundary fallback={<div className="empty">This week could not be shown right now.</div>}><WeekWidget board={board} stats={stats} today={today}/></ErrorBoundary></Widget>
     {user&&board?.selectedUsername===user&&<ProfileSettings timeZone={timeZone} today={today} activeBreak={board.activeBreak} onSave={saveSettings}/>}
     <HomeScreenTip/>
     <Widget title="For the family" summary="A little window into the day"><section className="family-note"><span className="family-icon"><svg><use href="#icon-heart"/></svg></span><div><h3>A little window into my day.</h3><p>Just open this page to follow along.<br />I’m glad you’re here.</p></div></section></Widget>
   </aside></div>
   <footer><a className="footer-brand" href="/">checkpoint.</a><p>A little progress, every day.</p><span>Days reset at 4 a.m. · {timeZone.replaceAll('_',' ')}</span></footer>
 </main>
-<dialog id="entry-dialog" ref={modalRef} aria-labelledby="entry-dialog-title"><form id="join" onSubmit={submitUsername}><div className="dialog-head"><a className="brand" href="/"><span className="brand-icon"><svg><use href="#icon-flag"/></svg></span>checkpoint.</a><button type="button" onClick={() => modalRef.current.close()} className="close" aria-label="Close"><svg><use href="#icon-close"/></svg></button></div><div className="dialog-mascot"><img src="/assets/pip.webp" alt="Pip is ready for your next checkpoint" width="125" height="145" decoding="async" loading="lazy" /></div><div className="eyebrow">YOUR DAILY SAVE POINT</div><h2 id="entry-dialog-title">{authMode === "signup" ? "Your next chapter starts here." : "Welcome back."}</h2><p>{authMode === "signup" ? "Pick a username and start sharing your progress." : "Enter your username to pick up where you left off."}<br />Your sign-in stays on this device.</p><label htmlFor="username">Your username</label><input ref={usernameRef} value={username} onChange={event => setUsername(event.target.value)} id="username" pattern="[A-Za-z0-9_]{2,24}" minLength="2" maxLength="24" placeholder="Enter your username" required autoComplete="username" aria-describedby="username-help" /><p id="username-help">Use 2–24 letters, numbers, or underscores.</p>{authMode === "signup" && <div className="display-name-field"><label htmlFor="display-name">Display name (optional)</label><input id="display-name" value={displayName} onChange={event => setDisplayName(event.target.value)} maxLength={60} placeholder="What should we call you?" /></div>}<button disabled={entering} id="join-button" className="primary">{entering ? "One moment…" : authMode === "signup" ? "Create my user" : "Sign in"} <svg><use href="#icon-arrow"/></svg></button><p id="join-error" role="alert">{joinError}</p><small className="privacy">The same username shares progress across your devices.</small><p><button type="button" className="text-button" onClick={() => {setAuthMode(mode => mode === "signup" ? "signin" : "signup");setJoinError("")}}>{authMode === "signup" ? "Already have a username? Sign in" : "New here? Create a user"}</button></p></form></dialog>
+<EntryDialog ref={entryRef} modalRef={modalRef} setUser={setUser} selectedUser={selectedUser} load={load} onEntered={()=>feedRef.current?.focusMessage()}/>
 <div id="toast" role="status" className={toast ? "show" : ""}>{toast}</div></>;
 }

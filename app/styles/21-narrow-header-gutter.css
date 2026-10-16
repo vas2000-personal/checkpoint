@@ -1,0 +1,1 @@
+@media(max-width:600px){/* The safe-area gutters above are later in source than the narrow header rules, so restate the tighter gutter. */.header-inner{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}}

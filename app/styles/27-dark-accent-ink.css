@@ -1,0 +1,2 @@
+/* --green is a light accent in dark mode, so every surface filled with it needs dark ink; .primary and friends already restate this and these two did not. */
+html[data-dark=true] :is(#toast,.brand-icon){color:#14221b}

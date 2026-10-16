@@ -1,0 +1,25 @@
+.scale-options{display:grid;gap:.5rem;padding:.625rem}.scale-options button{min-height:2.75rem;padding:.625rem 1rem;text-align:left;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:.5rem;font-size:.875rem}.scale-options button[aria-pressed=true]{background:#d5dfce;color:#182e20;border-color:#486144;font-weight:800}html[data-dark=true] .scale-options button[aria-pressed=true]{background:#344d3b;color:#fff;border-color:#a7c99b}html[data-dark=true][data-contrast=true] .scale-options button[aria-pressed=true]{background:#333;color:#fff;border:2px solid #fff}.study-status-bar{margin-bottom:1.5rem}.display-controls{gap:.5rem}@media(max-width:600px){.display-controls{gap:.375rem}}
+/* Dark-mode audit: remove light-theme surfaces and strengthen muted labels. */
+html[data-dark=true]{--line:#829887}
+html[data-dark=true] :is(.new-user-button,h1 em,.datebox,.today-status,.profile-selector label,.empty,.filter-tabs button,.chart-toggle button,.mascot-note,.art-label,.target-hit,.target-missed,.post-day-label,.today-tag,.writing-prompts>span,.compose-footer>span,.home-screen-tip summary,footer,footer>span,footer p,.footer-brand,.family-note h3,label,.stat em,.writing-prompts button,.day.today){color:var(--text)}
+html[data-dark=true] .filter-tabs button.active{background:#a7c99b;color:#14221b}
+html[data-dark=true] :is(.feed-heading h2 span,.brand-dot){color:#e6b468}
+html[data-dark=true] :is(.load-more,.post-status){background:var(--sage);color:var(--text);border-color:var(--line)}
+html[data-dark=true] .empty{border-color:var(--line)}
+html[data-dark=true] :is(.day b,.day.today b,.day.checked b){background:#304538;color:#f2f5eb;border-color:#829887}
+html[data-dark=true] .hero-art .orbit{border-color:#627e68}
+html[data-dark=true] .hero-art .orbit-two{background:radial-gradient(ellipse,#304b3b,transparent 70%)}
+html[data-dark=true] .hero-art .mascot-ground{background:#36513f}
+html[data-dark=true] .mascot-pair .mascot-delivery{color:#bdd5b3}
+html[data-dark=true] .mascot-pair .mascot-delivery svg{fill:#203329;stroke:#bdd5b3}
+html[data-dark=true] .mascot-note svg{stroke:#bdd5b3}
+html[data-dark=true] .stat-icon{background:#35482c;color:#d3e1a9}
+html[data-dark=true] .stat-icon.amber{background:#493b24;color:#f4c274}
+html[data-dark=true] .stat-icon.sage{background:#30483a;color:#bcd9b7}
+html[data-dark=true] .stat-icon.rose{background:#49342c;color:#edbaa1}
+html[data-dark=true] .study-bar-track{background:#304538;border:1px solid #829887}
+html[data-dark=true] .study-bar-track i,html[data-dark=true] .study-bar-column:last-child .study-bar-track i{background:#a7c99b}
+html[data-dark=true] :is(input,textarea)::placeholder{color:#bdcbbd;opacity:1}
+html[data-dark=true][data-contrast=true] :is(.feed-heading h2 span,.brand-dot,.datebox,.today-status,.mascot-note,.art-label,.profile-selector label,.empty,.filter-tabs button,.chart-toggle button,.new-user-button,h1 em){color:#fff}
+html[data-dark=true][data-contrast=true] :is(.filter-tabs button.active,.chart-toggle button.active){background:#b8efb6;color:#000}
+html[data-dark=true][data-contrast=true] .hero-art .orbit-two{background:none}

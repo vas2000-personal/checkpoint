@@ -1,0 +1,2 @@
+/* Controls whose own box-shadow out-specifies the shared ring still need its rim. */
+.filter-tabs button.active:focus-visible,.site-header.is-scrolled .mobile-menu-button:focus-visible{box-shadow:0 0 0 0.4375rem var(--bg)}

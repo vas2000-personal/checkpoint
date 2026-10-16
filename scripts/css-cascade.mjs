@@ -84,7 +84,8 @@ function rule(sels,css,start,end,ctx,out,stats) {
 function walk(css,start,end,ctx,out,stats) {
  let i=start,from=start,paren=0;
  while(i<end){
-  const n=scan(css,i);if(n){i+=n;continue}
+  // A comment ahead of a prelude must not land inside it, or the '@' of an at-rule stops being its first character.
+  const n=scan(css,i);if(n){if(css[i]==='/'&&!css.slice(from,i).trim())from=i+n;i+=n;continue}
   const c=css[i];
   if(c==='(')paren++;else if(c===')')paren--;
   else if(c===';'&&!paren){from=i+1}
@@ -101,8 +102,8 @@ function walk(css,start,end,ctx,out,stats) {
 }
 const IMPORT=/@import\s+([^;]+);/g,REMOTE=/^(?:https?:)?\/\/|^data:/;
 // Inline local @imports textually so the snapshot survives globals.css being split into several files.
-function source(file,seen=new Set()) {
- const path=resolve(file);if(seen.has(path))return '';seen.add(path);
+export function source(file,seen=new Set()) {
+ const path=resolve(file instanceof URL?fileURLToPath(file):file);if(seen.has(path))return '';seen.add(path);
  const text=readFileSync(path,'utf8').replace(/^\uFEFF/,'');
  return text.replace(IMPORT,(whole,spec)=>{
   const target=(spec.match(/^url\(\s*(['"]?)([^'")]+)\1\s*\)/)||spec.match(/^(['"])([^'"]+)\1/)||[])[2];

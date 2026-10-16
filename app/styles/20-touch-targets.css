@@ -1,0 +1,3 @@
+@media(pointer:coarse){/* The 44px target the other nine controls already meet, on the pointers that need it; desktop keeps its line boxes. */#retry{min-height:2.75rem;padding:0 0.75rem}.text-button{min-height:2.75rem}.home-screen-tip summary{min-height:2.75rem;padding:0.6875rem 0}}
+/* The dismiss button keeps its 30px circle; the hit box grows behind it instead. */
+.close{position:relative}
