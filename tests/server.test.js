@@ -45,7 +45,8 @@ test('independent persistent device sessions share posts; sign-out revokes only 
    if(method==='DELETE'){if(index>=0)sessions.splice(index,1);return new Response(null,{status:204})}
    const match=index<0?[]:[sessions[index]].filter(row=>row.expires_at>q.get('expires_at').slice(3));return Response.json(match);
   }
-  if(table==='checkpoint_breaks'||table==='checkpoint_study_days'||table==='checkpoint_awake')return Response.json([]);
+  // No credential row: this test is the un-enrolled, username-only path that must never change.
+  if(table==='checkpoint_breaks'||table==='checkpoint_study_days'||table==='checkpoint_awake'||table==='checkpoint_credentials')return Response.json([]);
   if(table==='checkpoint_posts'){
    if(method==='POST'){if(!posts.some(row=>row.id===body.id))posts.push({...body,created_at:new Date().toISOString(),post_day:studyDay()});return new Response(null,{status:201})}
    return Response.json(posts.filter(row=>q.get('username')==='eq.'+row.username));
