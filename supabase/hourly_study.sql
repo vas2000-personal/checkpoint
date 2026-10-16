@@ -22,13 +22,15 @@ create unique index checkpoint_study_hour_idx on public.checkpoint_posts(usernam
 alter table public.checkpoint_posts add constraint checkpoint_study_hour_required check(study is null or bucket_start is not null);
 create or replace function public.checkpoint_sync(p_username text,p_day date,p_text text,p_study jsonb,p_updated_at timestamptz)
 returns jsonb language plpgsql security invoker set search_path='' as $$
-declare saved public.checkpoint_posts;had_day boolean;changed boolean;zone text;local_time timestamp;bucket timestamptz;normalized_day date;
+declare saved public.checkpoint_posts;had_day boolean;changed boolean;zone text;local_time timestamp;bucket timestamptz;normalized_day date;backdated boolean;daily public.checkpoint_study_days;
 begin
  select time_zone into zone from public.checkpoint_users where username=p_username for update;
  local_time:=p_updated_at at time zone zone;
  normalized_day:=p_day;
  if p_day=local_time::date and extract(hour from local_time)<4 then normalized_day:=p_day-1;end if;
  bucket:=p_updated_at-extract(minute from local_time)*interval '1 minute'-extract(second from local_time)*interval '1 second';
+ -- True when the caller is correcting an earlier day rather than reporting the hour it is in now.
+ backdated:=normalized_day<>(case when extract(hour from local_time)<4 then local_time::date-1 else local_time::date end);
  select exists(select 1 from public.checkpoint_posts where username=p_username and post_day=normalized_day) into had_day;
  insert into public.checkpoint_study_days(username,post_day,message,study,source_updated_at,received_at)
  values(p_username,normalized_day,p_text,p_study,p_updated_at,now())
@@ -36,7 +38,15 @@ begin
  set message=excluded.message,study=excluded.study,source_updated_at=excluded.source_updated_at,received_at=now()
  where excluded.source_updated_at >= checkpoint_study_days.source_updated_at;
  -- A stale retry is a heartbeat, never a replacement of newer totals.
- update public.checkpoint_study_days set received_at=now() where username=p_username and post_day=normalized_day;
+ update public.checkpoint_study_days set received_at=now() where username=p_username and post_day=normalized_day returning * into daily;
+ -- A correction to a day that already has cards moves that day's totals and stops there: no new feed
+ -- card, and no overwriting of whichever real hour happened to share the slot. A correction to a day
+ -- with no cards still writes one, at the 4 a.m. start of that study day, or the day would never
+ -- count toward the streak; nothing exists there to overwrite.
+ if backdated and had_day then
+  return jsonb_build_object('ok',true,'id',null,'date',daily.post_day,'hour',null,'updated',daily.source_updated_at=p_updated_at,'xp_awarded',0,'updated_at',daily.source_updated_at,'received_at',daily.received_at);
+ end if;
+ if backdated then bucket:=(normalized_day+time '04:00') at time zone zone;end if;
  insert into public.checkpoint_posts(id,username,message,post_day,study,source_updated_at,received_at,bucket_start)
  values(gen_random_uuid(),p_username,p_text,normalized_day,p_study,p_updated_at,now(),bucket)
  on conflict(username,post_day,bucket_start) where study is not null do update

@@ -6,7 +6,8 @@ export const metadata = {
   appleWebApp:{capable:true,title:'Checkpoint',statusBarStyle:'default'},
   manifest:'/manifest.webmanifest',
 };
-export const viewport = {themeColor:'#f6f5ef',width:'device-width',initialScale:1,viewportFit:'cover'};
+// No themeColor in metadata: dark mode is a data attribute, not a media query. React renders the tag, the boot script owns its value.
+export const viewport = {width:'device-width',initialScale:1,viewportFit:'cover'};
 export default function RootLayout({children}) {
-  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:"try{const s=JSON.parse(localStorage.getItem('checkpoint-display')||'{}'),e=document.documentElement;for(const k of ['dark','contrast','focus'])e.dataset[k]=s[k]===true?'true':'false';e.dataset.scale=['small','normal','large'].includes(s.scale)?s.scale:'normal'}catch{}"}}/><link rel="stylesheet" href="/assets/fonts.css" /></head><body>{children}</body></html>;
+  return <html lang="en" suppressHydrationWarning><head><meta name="theme-color" content="#f6f5ef"/><script dangerouslySetInnerHTML={{__html:"try{let s={};try{s=JSON.parse(localStorage.getItem('checkpoint-display')||'{}')||{}}catch{}const e=document.documentElement;for(const k of ['dark','contrast','focus'])e.dataset[k]=s[k]===true?'true':'false';e.dataset.scale=['small','normal','large'].includes(s.scale)?s.scale:'normal';const m=document.querySelector('meta[name=theme-color]');const paint=()=>{if(m)m.content=e.dataset.contrast==='true'?(e.dataset.dark==='true'?'#000':'#fff'):(e.dataset.dark==='true'?'#14221b':'#f6f5ef')};paint();new MutationObserver(paint).observe(e,{attributeFilter:['data-dark','data-contrast']})}catch{}"}}/><link rel="stylesheet" href="/assets/fonts.css" /></head><body>{children}</body></html>;
 }

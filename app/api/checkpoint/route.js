@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {database,json,fail} from '../../../lib/server.js';
+import {database,json,fail,rateLimit} from '../../../lib/server.js';
 import {validateSync} from '../../../lib/study.js';
 export const runtime='nodejs';
 const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Max-Age':'600'};
@@ -9,12 +9,15 @@ export async function POST(request) {
  try{
    const token=/^Bearer (cp_[A-Za-z0-9_-]{64})$/.exec(request.headers.get('authorization')||'')?.[1];
    if(!token)return response({error:'A valid bearer key is required.'},401);
-   const keys=await database('checkpoint_api_keys?'+new URLSearchParams({select:'username',token_hash:'eq.'+createHash('sha256').update(token).digest('hex'),limit:'1'}));
+   // Cheap checks first: an oversized or flooding caller must not cost a database round trip.
+   if(Number(request.headers.get('content-length'))>16384)return response({error:'Payload is too large.'},413);
+   const tokenHash=createHash('sha256').update(token).digest('hex');
+   await rateLimit('sync:'+tokenHash,60,60);
+   const keys=await database('checkpoint_api_keys?'+new URLSearchParams({select:'username',token_hash:'eq.'+tokenHash,limit:'1'}));
    if(!keys.length)return response({error:'A valid bearer key is required.'},401);
    const username=keys[0].username;
    const users=await database('checkpoint_users?'+new URLSearchParams({select:'time_zone',username:'eq.'+username,limit:'1'}));
    if(!users.length)return response({error:'A valid bearer key is required.'},401);
-   if(Number(request.headers.get('content-length'))>16384)return response({error:'Payload is too large.'},413);
    // Limit streamed bodies too, even when Content-Length is missing.
    const reader=request.body?.getReader();let chunks=[],size=0;
    if(reader)try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>16384){await reader.cancel();return response({error:'Payload is too large.'},413)}chunks.push(Buffer.from(value))}}finally{reader.releaseLock()}
