@@ -72,15 +72,24 @@ function matches(probe,target) {
 }
 const RULES=topRules(sheet).flatMap(([prelude,body],order)=>splitTop(prelude,',').map(sel=>{
  const dark=/\[data-dark=true\]/.test(sel),contrast=/\[data-contrast=true\]/.test(sel);
+ // The accent picker multiplies the themes: an accent palette overrides --green and --focus, so a
+ // rule scoped to one accent must be read only while that accent is the one selected.
+ const accent=(sel.match(/\[data-accent=([\w-]+)\]/)||[])[1]||null;
  const prefix=(sel.match(/^html(\[data-[\w-]+=[^\]]*\])*/)||[''])[0];
  let rest=sel.slice(prefix.length).trim();
  if(rest===''||rest===':root')rest='html';
- return {order,dark,contrast,scoped:/data-(focus|scale)/.test(sel),
+ return {order,dark,contrast,accent,scoped:/data-(focus|scale)/.test(sel),
   targets:branches(rest),specificity:spec(prefix)+Math.max(...branches(rest).map(spec)),decls:decls(body)};
 }));
-const THEMES=[{name:'light',dark:false,contrast:false},{name:'dark',dark:true,contrast:false},
+const BASE_THEMES=[{name:'light',dark:false,contrast:false},{name:'dark',dark:true,contrast:false},
  {name:'high contrast',dark:false,contrast:true},{name:'dark + high contrast',dark:true,contrast:true}];
-const applies=(rule,theme)=>!rule.scoped&&(!rule.dark||theme.dark)&&(!rule.contrast||theme.contrast);
+// lib/prefs.js ACCENTS, the five palettes the picker offers. Every contrast guard below walks accent
+// x theme — twenty combinations, not four — because an accent that only passed in forest's theme
+// would be a readable default shipped with four unreadable alternatives. Forest is first, so the
+// THEMES[0] probes and the failure messages still read as the shipped look.
+const ACCENT_SLUGS=['forest','ocean','plum','clay','ink'];
+const THEMES=BASE_THEMES.flatMap(base=>ACCENT_SLUGS.map(accent=>({...base,accent,name:base.name+' / '+accent})));
+const applies=(rule,theme)=>!rule.scoped&&(!rule.dark||theme.dark)&&(!rule.contrast||theme.contrast)&&(!rule.accent||rule.accent===theme.accent);
 function winner(probe,prop,theme) {
  let best=null;
  for(const rule of RULES){
@@ -99,7 +108,7 @@ const hex=(value,theme,what)=>{
  let v=value;
  for(let i=0;i<4&&/^var\(/.test(v);i++)v=TOKENS(theme)[/^var\(\s*(--[\w-]+)/.exec(v)[1]]??v;
  v=NAMED[v]??v;
- assert.match(v||'',/^#[0-9a-f]{3,8}$/i,what+' did not resolve to a literal colour in '+theme.name+' (got '+value+')');
+ assert.match(v||'',/^#[0-9a-f]{3,8}$/i,what+' did not resolve to a literal color in '+theme.name+' (got '+value+')');
  return v;
 };
 // First surface in the chain that actually paints; otherwise the page background.
@@ -129,12 +138,23 @@ const TEXT=[
  ['input::placeholder',['input','dialog','body']],['textarea::placeholder',['textarea','.card','body']],
  // Both of these used to ride the WCAG large-text exemption and lost it at the Small scale; they are plain 4.5:1 text now.
  ['.footer-brand',['body']],['.brand-dot',['.site-header','body']],['.weekly-totals strong',['.card','body']],
+ // /settings: every panel is .card .profile-settings, so these ride the same surfaces the pace card does.
+ ['.settings-hint',['.card','body']],['.settings-status',['.card','body']],['.settings-reveal ol',['.card','body']],
+ ['.settings-nav a',['.settings-nav a','body']],['.settings-bottom-nav a',['body']],
+ // THE PHONE'S PRIMARY NAVIGATION, which this registry claimed to cover and did not. Both bars paint
+ // --bg, the color the header already paints, so the page is their surface. .header-settings sets
+ // background:none deliberately, which is why its chain falls through to the header and then the page.
+ ['.board-tab',['body']],['.header-settings',['.site-header','body']],
+ // .text-button is a link and takes var(--green) now rather than a hard-coded forest, so the accents
+ // reach it; that makes it accent x theme text and it belongs in the walk.
+ ['.text-button',['.card','body']],
+ ['.settings-meta dt',['.settings-meta>div','.card','body']],['.settings-meta dd',['.settings-meta>div','.card','body']],
 ];
 test('muted body text clears WCAG AA 4.5:1 in every theme the board can render in',()=>{
  const failing=[];
  for(const theme of THEMES)for(const [sel,chain] of TEXT){
   const raw=winner(sel,'color',theme);
-  assert.ok(raw,sel+' has no resolved colour in '+theme.name);
+  assert.ok(raw,sel+' has no resolved color in '+theme.name);
   const fg=hex(raw,theme,sel),bg=surface(chain,theme),r=ratio(fg,bg);
   if(r<4.5)failing.push(theme.name+': '+sel+' '+fg+' on '+bg+' = '+r.toFixed(2)+':1');
  }
@@ -143,7 +163,7 @@ test('muted body text clears WCAG AA 4.5:1 in every theme the board can render i
 
 // ---------------------------------------------------------------------------
 // A filled control carries its own background, so the themed :is() TEXT lists can
-// recolour its label without touching its fill. :is() takes the specificity of its
+// recolor its label without touching its fill. :is() takes the specificity of its
 // MOST specific branch, which is how a plain `.chart-toggle button` entry came to
 // out-specify `.chart-toggle button.active` and strand #111 on a #314f42 pill.
 // ---------------------------------------------------------------------------
@@ -156,20 +176,26 @@ const PRESSED=[
  ['.settings-save',['.settings-save','.profile-settings','body']],
  ['.studying-badge',['.studying-badge','.card','body']],['#toast',['#toast','body']],
  ['.brand-icon',['.brand-icon','.site-header','body']],['.pill',['.pill','.adventure','body']],
+ // /settings: the accent-filled controls, which is where a bad accent would actually hurt.
+ ['.settings-choice[aria-pressed=true]',['.settings-choice[aria-pressed=true]','.card','body']],
+ ['.settings-nav a[aria-current=page]',['.settings-nav a[aria-current=page]','body']],
+ ['.settings-switch-state',['.settings-switch-state','.settings-switch','.card','body']],
+ ['.settings-switch[aria-pressed=true] .settings-switch-state',['.settings-switch[aria-pressed=true] .settings-switch-state','.settings-switch','.card','body']],
+ ['.settings-bottom-nav a[aria-current=page]',['.settings-bottom-nav a[aria-current=page]','body']],
 ];
 test('a filled control keeps its label readable on its own fill in every theme',()=>{
  const failing=[];
  for(const theme of THEMES)for(const [sel,chain] of PRESSED){
   const raw=winner(sel,'color',theme);
-  assert.ok(raw,sel+' has no resolved colour in '+theme.name);
+  assert.ok(raw,sel+' has no resolved color in '+theme.name);
   const fg=hex(raw,theme,sel),bg=surface(chain,theme),r=ratio(fg,bg);
   if(r<4.5)failing.push(theme.name+': '+sel+' '+fg+' on its own '+bg+' = '+r.toFixed(2)+':1');
  }
- assert.deepEqual(failing,[],'a themed text list recoloured these labels without restating their fill');
+ assert.deepEqual(failing,[],'a themed text list recolored these labels without restating their fill');
 });
 // Every themed :is() TEXT list entry that names a control which also has a filled .active/pressed
 // state must be paired with a rule restating that state, or the fill and the label drift apart.
-test('every themed text list that recolours a control also restates its filled state',()=>{
+test('every themed text list that recolors a control also restates its filled state',()=>{
  const missing=[];
  for(const rule of RULES){
   if(rule.decls['color']===undefined||rule.decls['background']!==undefined)continue;
@@ -178,26 +204,50 @@ test('every themed text list that recolours a control also restates its filled s
    for(const filled of PRESSED.map(([sel])=>sel)){
     if(!filled.startsWith(target+'.')&&!filled.startsWith(target+'['))continue;
     // The text list matches the filled control too; something later must restate its background.
-    const theme=THEMES.find(t=>(!rule.dark||t.dark)&&(!rule.contrast||t.contrast)&&(rule.dark||!t.dark)&&(rule.contrast||!t.contrast));
+    const theme=THEMES.find(t=>(!rule.dark||t.dark)&&(!rule.contrast||t.contrast)&&(rule.dark||!t.dark)&&(rule.contrast||!t.contrast)&&t.accent===(rule.accent||'forest'));
     if(!theme)continue;
-    const owner=RULES.filter(r=>(!r.dark||theme.dark)&&(!r.contrast||theme.contrast)&&!r.scoped&&r.decls['background']!==undefined&&r.targets.some(t=>t===filled))
+    const owner=RULES.filter(r=>applies(r,theme)&&r.decls['background']!==undefined&&r.targets.some(t=>t===filled))
      .sort((a,b)=>a.specificity-b.specificity||a.order-b.order).at(-1);
-    const colourWinner=winner(filled,'color',theme);
+    const colorWinner=winner(filled,'color',theme);
     // If the theme has already flattened the fill to the generic surface, there is no filled state left.
     const fill=owner&&hex(owner.decls['background'].split(/s+/)[0],theme,filled);
     if(fill&&[hex('var(--paper)',theme,'p'),hex('var(--bg)',theme,'b')].includes(fill))continue;
     if(!owner||owner.specificity<rule.specificity)
-     missing.push(theme.name+': '+target+' in a text list (spec '+rule.specificity+') recolours '+filled+' to '+colourWinner+' but its fill is set at spec '+(owner?owner.specificity:'none'));
+     missing.push(theme.name+': '+target+' in a text list (spec '+rule.specificity+') recolors '+filled+' to '+colorWinner+' but its fill is set at spec '+(owner?owner.specificity:'none'));
    }
   }
  }
- assert.deepEqual([...new Set(missing)],[],'the fill must be restated at least as specifically as the text list that recolours the label');
+ assert.deepEqual([...new Set(missing)],[],'the fill must be restated at least as specifically as the text list that recolors the label');
 });
 
 // ---------------------------------------------------------------------------
+// SC 1.4.11 again, for a STATE rather than an icon. Both fixed bottom navs mark the current slot with
+// a filled pill and nothing else, and in BOTH high-contrast themes the idle links are --ink too, so
+// that fill is the only distinction there is. --sage gave the settings nav 1.08:1 light, 1.60:1 dark,
+// 1.16:1 high contrast and 1.32:1 dark+high contrast -- invisible to exactly the readers who turned
+// high contrast on. The board's own nav had already solved this with --green; this holds both to it.
+// [selector, the context the fill is stated in]
+const CURRENT=[
+ ['.settings-bottom-nav a[aria-current=page]',''],
+ ['.board-tab.is-current','@media(max-width:760px)'],
+];
+test('a current-slot pill clears 3:1 against the page in every theme',()=>{
+ const failing=[];
+ for(const [sel,ctx] of CURRENT){
+  const fill=at(ctx,sel,'background');
+  assert.ok(fill,sel+' states no fill in '+(ctx||'the base context')+', so the current slot has no indicator');
+  assert.equal(fill,'var(--green)',sel+' hard-codes its fill instead of taking the accent token: '+fill);
+  for(const theme of THEMES){
+   const bg=hex('var(--bg)',theme,'page'),r=ratio(hex(fill,theme,sel),bg);
+   if(r<3)failing.push(theme.name+': '+sel+' '+fill+' on '+bg+' = '+r.toFixed(2)+':1 (SC 1.4.11 needs 3:1)');
+  }
+ }
+ assert.deepEqual(failing,[],'these current-slot pills are invisible against the page');
+});
+// ---------------------------------------------------------------------------
 // SC 1.4.11: an icon that carries meaning needs 3:1, and an icon sitting inline
 // with text should not be fainter than the text it annotates. Icons that take
-// currentColor are listed with a null colour: the point is that they inherit.
+// currentColor are listed with a null color: the point is that they inherit.
 // ---------------------------------------------------------------------------
 const ICONS=[
  ['.feed-note svg',['.card','body'],'.feed-note'],['.post-footer svg',['.post','body'],'.post-footer'],
@@ -212,9 +262,9 @@ test('every meaningful icon clears 3:1 and never reads fainter than the text bes
  const failing=[];
  for(const theme of THEMES)for(const [sel,chain,inherits] of ICONS){
   const own=winner(sel,'color',theme);
-  if(inherits)assert.ok(!own,sel+' hard-codes a colour instead of inheriting from '+inherits+', so the themes cannot reach it');
+  if(inherits)assert.ok(!own,sel+' hard-codes a color instead of inheriting from '+inherits+', so the themes cannot reach it');
   const raw=own??winner(inherits,'color',theme);
-  assert.ok(raw,sel+' has no resolved colour in '+theme.name);
+  assert.ok(raw,sel+' has no resolved color in '+theme.name);
   const fg=hex(raw,theme,sel),bg=surface(chain,theme),r=ratio(fg,bg);
   if(r<3)failing.push(theme.name+': '+sel+' '+fg+' on '+bg+' = '+r.toFixed(2)+':1 (SC 1.4.11 needs 3:1)');
   // An icon inline with text must not be weaker than that text: the washed-out-icon regression.
@@ -225,8 +275,8 @@ test('every meaningful icon clears 3:1 and never reads fainter than the text bes
  }
  assert.deepEqual(failing,[],'these icons are below 3:1 or fainter than their own label');
 });
-test('no icon rule hard-codes a colour the themes then cannot reach',()=>{
- // An `svg` descendant rule with its own colour overrides the themed lists, which only name the
+test('no icon rule hard-codes a color the themes then cannot reach',()=>{
+ // An `svg` descendant rule with its own color overrides the themed lists, which only name the
  // text element; inheriting currentColor is what keeps the icon on-theme in all four modes.
  const named=new Set(ICONS.map(([sel])=>sel));
  const stray=[];
@@ -235,7 +285,7 @@ test('no icon rule hard-codes a colour the themes then cannot reach',()=>{
   for(const t of rule.targets)if(/(^|[\s>])svg$/.test(t)&&!named.has(t))stray.push(t);
  }
  assert.deepEqual([...new Set(stray)].sort(),['.mascot-delivery svg','.mascot-note svg','.mascot-pair .mascot-delivery svg','.trail-scene>svg','svg'],
-  'a new svg-scoped colour rule must be registered in ICONS or proven decorative');
+  'a new svg-scoped color rule must be registered in ICONS or proven decorative');
  for(const theme of THEMES){
   const stroke=winner('.mascot-note svg','stroke',theme);
   const bg=surface(['body'],theme),r=ratio(hex(stroke,theme,'.mascot-note svg'),bg);
@@ -245,6 +295,14 @@ test('no icon rule hard-codes a colour the themes then cannot reach',()=>{
 
 // ---------------------------------------------------------------------------
 // Root font size. Never assume 1rem is 16px: the display scale moves the root.
+//
+// WHAT THE 16px RULE BELOW IS AND IS NOT. It is input/textarea/select ONLY, and deliberately so: its
+// purpose is iOS Safari, which zooms the page when a control under 16px takes focus and never zooms
+// back out. It is not a legibility floor for the sheet. At the Small scale a control LABEL is 11-15px
+// and a 2.75rem target measures 38.5px, which is inherent to writing sizes in rem -- the Small scale
+// moves the root, so it moves every rem with it -- and applies equally to controls that predate this
+// phase. Every real form field passes at all three scales. Shrinking the scale is the point of the
+// scale; do not read this test as a claim that nothing on the page is under 16px.
 // ---------------------------------------------------------------------------
 const SCALES={small:at('','html[data-scale=small]','font-size'),normal:at('','html','font-size'),large:at('','html[data-scale=large]','font-size')};
 const VIEWPORTS=[320,390,768];
@@ -324,7 +382,7 @@ test('no text leans on the large-text exemption at a scale where it is no longer
  assert.deepEqual(failing,[],'these rely on an exemption they do not qualify for at every scale');
 });
 test('the large-text registry still covers every selector that could claim the exemption',()=>{
- // Any selector with its own colour and a declared size big enough to qualify has to be audited
+ // Any selector with its own color and a declared size big enough to qualify has to be audited
  // by name, either as plain 4.5:1 text or as a registered exemption.
  // .star-two is aria-hidden decorative art in the hero, so it carries neither text nor meaning.
  const audited=new Set([...TEXT.map(([sel])=>sel),...LARGE.map(([sel])=>sel),'.brand','.star-two']);
@@ -340,12 +398,12 @@ test('the large-text registry still covers every selector that could claim the e
   if(!RULES.some(r=>r.targets.includes(sel)&&r.decls['color']!==undefined))continue;
   if(!audited.has(sel))missing.push((ctx||'base')+' '+sel+' = '+raw+' ('+px.toFixed(1)+'px)');
  }
- assert.deepEqual([...new Set(missing)],[],'these are large, carry their own colour, and no contrast test names them');
+ assert.deepEqual([...new Set(missing)],[],'these are large, carry their own color, and no contrast test names them');
 });
 
 // ---------------------------------------------------------------------------
 // SC 1.4.11: the focus indicator needs 3:1, including where it lands on the
-// pressed sibling next door, whose background is the ring colour in dark mode.
+// pressed sibling next door, whose background is the ring color in dark mode.
 // ---------------------------------------------------------------------------
 test('the focus ring is one definition and stays visible on every surface it can land on',()=>{
  const rings=[...sheet.matchAll(/([^;{}]*:focus-visible[^{]*)\{([^}]*)\}/g)].map(m=>[m[1],m[2]]);
@@ -357,8 +415,8 @@ test('the focus ring is one definition and stays visible on every surface it can
  // The ring sits inside a rim of its own, so its contrast cannot depend on what is underneath it.
  const rim=at('','button:focus-visible','box-shadow');
  assert.match(rim||'',/^0 0 0 [\d.]+rem var\(--bg\)$/,'the ring needs a rim wider than outline-offset + outline-width');
- // Geometry, stated once and reused below: the ring survives a same-coloured neighbour because the
- // rim reaches past the outline's OUTER edge (offset + width), not because of any colour relationship.
+ // Geometry, stated once and reused below: the ring survives a same-colored neighbour because the
+ // rim reaches past the outline's OUTER edge (offset + width), not because of any color relationship.
  const spread=parseFloat(/0 0 0 ([\d.]+)rem/.exec(rim)[1]);
  const offset=parseFloat(at('','button:focus-visible','outline-offset'));
  const width=parseFloat(/([\d.]+)rem/.exec(at('','button:focus-visible','outline'))[1]);
@@ -372,13 +430,13 @@ test('the focus ring is one definition and stays visible on every surface it can
   assert.ok(own,sel+' no longer has its own box-shadow; drop it from this guard');
   assert.match(at('',sel+':focus-visible','box-shadow')||'',/var\(--bg\)/,sel+' loses the focus rim to its own box-shadow');
  }
- // The rim takes the colour of the SURFACE the control sits on, not the page, so a control
- // inside a --paper card does not get a page-coloured square punched behind it.
+ // The rim takes the color of the SURFACE the control sits on, not the page, so a control
+ // inside a --paper card does not get a page-colored square punched behind it.
  const paperRim=[...sheet.matchAll(/:is\(([^)]*)\) :is\(([^)]*)\):focus-visible\{box-shadow:0 0 0 ([\d.]+)rem var\(--paper\)\}/g)];
- assert.equal(paperRim.length,1,'there should be exactly one surface-coloured rim rule, found '+paperRim.length);
+ assert.equal(paperRim.length,1,'there should be exactly one surface-colored rim rule, found '+paperRim.length);
  assert.equal(+paperRim[0][3],spread,'the surface rim and the page rim must be the same width');
  for(const el of ['button','a','input','textarea','select','summary'])
-  assert.ok(splitTop(paperRim[0][2],',').includes(el),el+' is missing from the surface-coloured rim');
+  assert.ok(splitTop(paperRim[0][2],',').includes(el),el+' is missing from the surface-colored rim');
  // Enumerated from the sheet's own --paper lists, not guessed: every container that paints --paper.
  const paperSurfaces=new Set();
  for(const rule of RULES){
@@ -388,9 +446,12 @@ test('the focus ring is one definition and stays visible on every surface it can
  const rimmed=new Set(splitTop(paperRim[0][1],','));
  assert.ok(rimmed.size>=10,'the surface list did not parse, got '+rimmed.size);
  // A container only needs the surface rim if a focusable control can sit inside it.
- const NOT_CONTAINERS=new Set(['input','textarea','select','.day','.post-avatar','.study-bar-track','.load-more','.post-status','.close','.empty','.filter-tabs button.active','.writing-prompts button','.display-button','.scale-options button','.study-metric-details[open] .metric-expand']);
+ // The /settings surfaces are either the control itself (.settings-nav a, .settings-choice,
+ // .settings-switch) or sit inside .card .profile-settings, which is already on the rim list above
+ // and therefore rims every input, button and summary within them.
+ const NOT_CONTAINERS=new Set(['input','textarea','select','.day','.post-avatar','.study-bar-track','.load-more','.post-status','.close','.empty','.filter-tabs button.active','.writing-prompts button','.display-button','.scale-options button','.study-metric-details[open] .metric-expand','.settings-nav a','.settings-choice','.settings-switch','.accent-option','.settings-meta>div']);
  assert.deepEqual([...paperSurfaces].filter(s=>!rimmed.has(s)&&!NOT_CONTAINERS.has(s)).sort(),[],
-  'these paint --paper and can hold a focusable control, but the rim there is still page-coloured');
+  'these paint --paper and can hold a focusable control, but the rim there is still page-colored');
  const RIMS=[['var(--bg)','the page'],['var(--paper)','a card']];
  for(const theme of THEMES){
   const focus=hex('var(--focus)',theme,'--focus');
@@ -400,7 +461,7 @@ test('the focus ring is one definition and stays visible on every surface it can
    assert.ok(ratio(focus,rim)>=3,theme.name+': the ring is only '+ratio(focus,rim).toFixed(2)+':1 against its rim on '+where+' ('+focus+' on '+rim+')');
   }
   // The pressed siblings a ring can overlap. In dark mode their background IS --focus, so the
-  // ring has NO colour contrast against them (1.00:1) and survives purely on the rim's geometry:
+  // ring has NO color contrast against them (1.00:1) and survives purely on the rim's geometry:
   // the rim is wider than the outline's outer edge, so the rim always separates the two.
   for(const sel of ['.display-button[aria-pressed=true]','.filter-tabs button.active','.chart-toggle button.active','.primary','.header-action']){
    const raw=winner(sel,'background',theme)??winner(sel,'background-color',theme);
@@ -446,7 +507,20 @@ const CONTROLS=[
  ['.profile-settings select',''],['.profile-settings input',''],['.load-more',''],
  ['.metric-expand',''],['.study-metric-details>summary',''],['.compact-widget>summary',''],
  ['.footer-brand',''],['.mobile-menu-button','@media(max-width:760px)'],
+ ['.settings-nav a',''],['.settings-choice',''],['.settings-switch',''],['.accent-option',''],
+ ['.settings-back',''],['.settings-reveal>summary',''],['.settings-bottom-nav a',''],
+ // The phone's PRIMARY navigation, and the header link it stands in for above 760px. Both pass; this
+ // registry said "every interactive control in the sheet" while omitting the two most used of all.
+ ['.board-tab',''],['.header-settings',''],
+ // The accent radio used to set min-height:0/min-width:0, opting out of the floor on purpose; it is
+ // pinned to a 24px square now, the way .pass-check input[type=checkbox] already was.
+ ['.accent-option input',''],['.copy-code',''],
 ];
+// Controls DESIGNED at the 44px comfort target rather than given it only on a coarse pointer. They
+// are nav slots and pills, not inline text in a line box, so an unconditional 2.75rem costs nothing
+// on a desktop and is what keeps them honest at the Small scale.
+const ALWAYS_44=['.board-tab','.header-settings','.settings-bottom-nav a','.settings-nav a','.settings-choice',
+ '.settings-switch','.accent-option','.settings-back','.settings-reveal>summary','.settings-save','.display-button'];
 // Height a control actually occupies with a fine pointer, at a given root size.
 const lineHeight=1.6,px=(v,root)=>v===undefined?undefined:sizePx(v,root);
 function controlHeight(sel,ctx,root) {
@@ -468,6 +542,17 @@ test('every interactive control clears the 24px AA floor on a fine pointer, at e
   if(target<24)thin.push(scale+': '+sel+' is '+target.toFixed(1)+'px tall (SC 2.5.8 needs 24)');
  }
  assert.deepEqual(thin,[],'these are under 24 CSS px without a touch pointer');
+});
+test('the controls designed at 44px state it unconditionally, including both bottom navs',()=>{
+ for(const sel of ALWAYS_44){
+  const floor=at('',sel,'min-height');
+  assert.match(floor||'',/rem$/,sel+' states no rem min-height in the base context: '+floor);
+  assert.ok(parseFloat(floor)>=2.75,sel+' is '+floor+', under the 2.75rem comfort target');
+ }
+ // Below 760px the board tab grows to the full 3.5rem slot the fixed bar is built around, and the
+ // settings bar matches it: the two bars sit at the same screen position.
+ assert.equal(at('@media(max-width:760px)','.board-tab','height'),'3.5rem');
+ assert.equal(at('@media(max-width:760px)','.settings-bottom-nav a','height'),'3.5rem');
 });
 test('the 24px floor is in CSS pixels and the 44px comfort target stays coarse-only',()=>{
  // A rem floor would shrink to 21px at the Small scale, so the unconditional hit boxes use px.
@@ -528,6 +613,9 @@ test('no scroll or clip container can crop the focus rim off a control inside it
  const CLIPPING=[
   ['.site-header.menu-open .header-actions','@media(max-width:760px)'],
   ['.card',''],
+  // The settings sub-nav scrolls sideways at 320px instead of wrapping, which makes it a clip box
+  // around five focusable pills.
+  ['.settings-nav ul',''],
  ];
  const found=[];
  for(const key of Object.keys(map)){
@@ -581,15 +669,15 @@ test('reduced motion silences every transition and animation in the sheet',()=>{
  assert.doesNotMatch(sheet,/\.(orbit|orbit-two|hero-mascot|mascot-ground|art-star|star-one|star-two)[^{}]*\{[^}]*(animation|transition):/);
 });
 
-test('React renders the theme-colour meta and the blocking boot script only repaints it',()=>{
+test('React renders the theme-color meta and the blocking boot script only repaints it',()=>{
  assert.doesNotMatch(layout,/themeColor\s*:/,'a static themeColor cannot track a data attribute');
  assert.match(layout,/<head><meta name="theme-color" content="#[0-9a-f]{3,6}"\/>/,'the meta must be React-rendered, ahead of the script that reads it');
  const script=/dangerouslySetInnerHTML=\{\{__html:"([^"]*)"\}\}/.exec(layout);
  assert.ok(script,'the boot script must stay inline and blocking');
  assert.doesNotMatch(script[1],/createElement|appendChild/,'a script-created node inside the head React hydrates is the thing we removed');
  assert.match(script[1],/querySelector\('meta\[name=theme-color\]'\)/,'the script should find the rendered meta');
- for(const colour of ['#14221b','#f6f5ef','#000','#fff'])
-  assert.ok(script[1].includes("'"+colour+"'"),'theme colour '+colour+' is missing from the boot script');
+ for(const color of ['#14221b','#f6f5ef','#000','#fff'])
+  assert.ok(script[1].includes("'"+color+"'"),'theme color '+color+' is missing from the boot script');
  assert.match(script[1],/MutationObserver/,'the meta must follow later dark/contrast toggles');
  assert.match(script[1],/^try\{[\s\S]*\}catch\{\}$/,'the boot script must be fully wrapped in try/catch');
  assert.equal(layout.includes('<head>'),true);
@@ -614,7 +702,9 @@ function boot(stored,{meta=true}={}) {
  return {dataset:element.dataset,content:tag.content,observed};
 }
 test('the boot script still paints the theme when storage or the meta tag is hostile',()=>{
- const expected={dark:'false',contrast:'false',focus:'false',scale:'normal'};
+ // The default stamp. accent and reduceMotion joined it when lib/prefs.js took over the shape; the
+ // script-versus-module agreement itself is asserted in tests/prefs.test.js.
+ const expected={dark:'false',contrast:'false',focus:'false',scale:'normal',accent:'forest',reduceMotion:'system'};
  // The shape the guard was written for, plus the shapes it missed.
  for(const stored of [null,'{}','{"dark":true}','null','"null"','0','false','[]','"not json at all','{"scale":"huge"}']){
   const {dataset,observed}=boot(stored);
@@ -645,4 +735,28 @@ test('every stylesheet partial is imported exactly once, in order',()=>{
  assert.equal(new Set(imported).size,imported.length,'a partial is imported twice');
  assert.deepEqual(imported,[...imported].sort(),'imports are out of numeric order, so the cascade no longer matches the filenames');
  assert.equal(manifest.replace(/@import[^;]+;|\/\*[\s\S]*?\*\/|\s/g,''),'','globals.css must hold nothing but the manifest');
+});
+
+// ---------------------------------------------------------------------------
+// A FAILED SAVE MUST NOT READ AS BODY COPY. Every settings panel's alert is styled by
+// .profile-settings p[role=alert], but the themed :is(p,...) text lists out-specify it, so in dark
+// mode the brick red resolved to var(--text) -- byte-identical to the paragraph above it. High
+// contrast flattens the whole palette to the ink on purpose and #join-error already does the same,
+// so that is the one theme where matching body copy is the intended answer.
+// ---------------------------------------------------------------------------
+test('a settings panel alert is distinguishable from body copy wherever the theme has colors',()=>{
+ for(const theme of THEMES){
+  const alert=hex(winner('.profile-settings p[role=alert]','color',theme),theme,'panel alert');
+  const body=hex(winner('p','color',theme),theme,'panel body copy');
+  const surfaceColor=surface(['.card','body'],theme);
+  if(theme.contrast){
+   assert.equal(alert,hex('var(--ink)',theme,'ink'),theme.name+': high contrast pins every color to the ink, as #join-error does');
+   continue;
+  }
+  assert.notEqual(alert,body,theme.name+': the alert is the same color as the paragraph above it');
+  assert.ok(ratio(alert,surfaceColor)>=4.5,theme.name+': the alert is '+ratio(alert,surfaceColor).toFixed(2)+':1 on '+surfaceColor);
+ }
+ // The dialog's own error already carried a dark restatement; the panels are held to the same one.
+ assert.equal(winner('#join-error','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0a98f');
+ assert.equal(winner('.profile-settings p[role=alert]','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0a98f');
 });

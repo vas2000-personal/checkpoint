@@ -16,7 +16,7 @@ const credentialFor=async username=>{
     return null;
   }
 };
-// Never fatal: this counter is defence in depth behind the 10-per-minute rate limit above, so a
+// Never fatal: this counter is defense in depth behind the 10-per-minute rate limit above, so a
 // failed bookkeeping write must not refuse a caller who typed the right passphrase. The factor names
 // WHICH meter is charged: one shared counter let anybody who knows the public username burn wrong
 // RECOVERY codes to grow the lock that gates the PASSPHRASE, and the owner's correct passphrase then

@@ -1,4 +1,4 @@
-/* The rim has to be the colour of the surface the control sits on, not the page, or focusing inside a card punches a page-coloured hole in it. The container list is the --paper surface list this sheet already maintains. */
+/* The rim has to be the color of the surface the control sits on, not the page, or focusing inside a card punches a page-colored hole in it. The container list is the --paper surface list this sheet already maintains. */
 :is(.card,.post,.stat,dialog,.compact-widget,.scale-options,.study-status-bar,.study-details,.profile-settings,.home-screen-tip,.awake-status,.filter-tabs,.chart-toggle,.site-header.menu-open .header-actions) :is(button,a,input,textarea,select,summary):focus-visible{box-shadow:0 0 0 0.4375rem var(--paper)}
 /* overflow-y:auto makes the mobile menu a scroll container, which clips at its padding box; keep focus off that edge so the rim the ring depends on always has room. */
 .site-header.menu-open .header-actions{scroll-padding:0.4375rem}

@@ -1,0 +1,16 @@
+/* Tri-state reduced motion (lib/prefs.js MOTION). 'system' adds nothing: the
+   @media(prefers-reduced-motion:reduce) block in 02-base-responsive.css is already the answer. */
+html[data-reduce-motion=on] *{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+/* 'off' is the explicit opt back INTO motion for a visitor whose OS asks for less, and CSS cannot
+   resurrect a declaration that an !important media block has already killed. So every transition and
+   the one animation in this sheet is restated here at a higher specificity. If a partial adds motion,
+   add it here too, or 'off' quietly stops meaning anything. Current sources: 01-base (buttons, .post,
+   .bar i, #toast), 14-mobile-menu, 15-widgets, 17-scroll-overlay. */
+html[data-reduce-motion=off] :is(.header-action,.primary){transition:background .2s,transform .2s !important}
+html[data-reduce-motion=off] .post{transition:box-shadow .2s !important}
+html[data-reduce-motion=off] .bar i{transition:width .5s !important}
+html[data-reduce-motion=off] #toast{transition:opacity .2s,transform .2s !important}
+html[data-reduce-motion=off] .mobile-menu-button{transition:background .2s,box-shadow .2s,transform .2s !important}
+html[data-reduce-motion=off] .site-header.is-scrolled .mobile-menu-button{animation:menu-float .2s ease-out !important}
+html[data-reduce-motion=off] .compact-widget>summary>svg{transition:transform .2s !important}
+html[data-reduce-motion=off] .scroll-indicator{transition:opacity .2s !important}

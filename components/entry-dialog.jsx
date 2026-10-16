@@ -85,7 +85,7 @@ export default function EntryDialog({ref,modalRef,setUser,selectedUser,load,onEn
       // users reach a passphrase through the offer this very response triggers (signup answers
       // enroll:true when no passphrase was sent). One enrollment path means one one-time-code screen
       // to get right, and the first screen of a family board does not tax everyone with a credential
-      // the parents reading it will never set. The server's optional passphrase is still honoured:
+      // the parents reading it will never set. The server's optional passphrase is still honored:
       // signedIn() above shows the code screen for any response that carries one.
       const body=step==='passphrase'?{username:name,passphrase}:step==='recovery'?{username:name,recovery}:{username:name,displayName};
       await signedIn(await api(step==='username'&&authMode==='signup'?'/api/signup':'/api/enter',body));

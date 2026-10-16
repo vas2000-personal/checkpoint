@@ -1,0 +1,52 @@
+/* The board's own tabs: one component, two shapes. From 760px up it is a horizontal strip in flow
+   under the sticky header; below that the SAME markup is a fixed bottom nav. Everything is written in
+   tokens (--bg/--line/--text/--ink/--green/--sage) so the four themes and five accents come out of
+   lib/prefs.js without a hard-coded color here, and the surface stays --bg — the color the header
+   already paints — so the focus rim the shared ring draws is the right color without a new entry in
+   the --paper rim list. */
+.board-tabs{background:var(--bg);border-bottom:0.0625rem solid var(--line)}
+.board-tabs-inner{max-width:76rem;margin:auto;display:flex;align-items:stretch;gap:0.25rem;padding-left:max(2rem,env(safe-area-inset-left));padding-right:max(2rem,env(safe-area-inset-right))}
+.board-tab{display:flex;align-items:center;justify-content:center;gap:0.5rem;min-height:2.75rem;padding:0.6875rem 1rem;font:500 1.0625rem/1.4 var(--display);letter-spacing:-0.01875rem;color:var(--text);border-bottom:0.125rem solid transparent;margin-bottom:-0.0625rem}
+.board-tab:hover{color:var(--ink)}
+.board-tab.is-current{color:var(--ink);border-bottom-color:var(--green)}
+/* The icons are the bottom nav's: a strip of serif labels needs no glyph beside each word. */
+.board-tab svg{display:none}
+/* The fourth slot leaves the board for a real page. From 760px up the header already carries that
+   link, and printing it twice on one screen is the duplication the hamburger used to cause, so the
+   strip is three board tabs and the bottom nav is the one that grows the fourth slot. */
+.board-tab.is-route{display:none}
+@media(max-width:1060px){.board-tabs-inner{padding-left:max(1.5rem,env(safe-area-inset-left));padding-right:max(1.5rem,env(safe-area-inset-right))}}
+@media(max-width:760px){
+ /* 3.5rem of slots plus the home-indicator strip. The padding is on the box the background fills, so
+    the surface is painted THROUGH the safe area and a dark board does not end in a cream band. */
+ .board-tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;border-top:0.0625rem solid var(--line);border-bottom:0;padding-bottom:env(safe-area-inset-bottom)}
+ .board-tabs-inner{gap:0.1875rem;padding-left:max(0.375rem,env(safe-area-inset-left));padding-right:max(0.375rem,env(safe-area-inset-right))}
+ .board-tab{flex:1 1 0;min-width:0;height:3.5rem;flex-direction:column;gap:0.1875rem;padding:0.375rem 0.25rem;border-radius:0.5rem;font:700 0.75rem/1.2 var(--body);letter-spacing:0;border-bottom:0;border-top:0;margin:0}
+ .board-tab svg{display:block;width:1.375rem;height:1.375rem}
+ /* The filled accent every other pressed control in this sheet uses (.display-button[aria-pressed],
+    .chart-toggle button.active): --sage on --bg is a 1.1:1 pill that all but disappears in dark mode,
+    and the current slot is a state a parent has to be able to SEE. --green against --bg clears 3:1 in
+    all four themes, and --paper on --green is the ink each theme already pairs with that fill. */
+ .board-tab.is-current{background:var(--green);color:var(--paper);border-bottom-color:transparent}
+ .board-tab.is-route{display:flex}
+ /* iOS floats a fixed bar above the keyboard, where it lands on top of the composer's own submit
+    button; it stands down while the textarea has focus and comes back on blur. */
+ html:has(.composer textarea:focus) .board-tabs{display:none}
+}
+/* The header's one link to the page the fourth nav slot points at. background:none rather than
+   --paper: a surface that paints --paper owes the sheet a surface-colored focus rim, and a quiet
+   outlined link needs neither. The phone reaches Settings through the bottom nav, so it stands down. */
+.header-settings{display:inline-flex;align-items:center;min-height:2.75rem;padding:0.6875rem 0.875rem;border:0.0625rem solid var(--line);border-radius:0.5625rem;background:none;color:var(--ink);font-size:0.875rem;font-weight:700}
+.header-settings:hover{background:var(--sage)}
+@media(max-width:760px){
+ .header-settings{display:none}
+ /* 14-mobile-menu.css hid the header actions below 760 because the hamburger owned them, and pinned
+    the row to nowrap to make room for it. With the menu gone the actions come back on their own, and
+    the row wraps again — which is what keeps a 320px header from overflowing once three controls sit
+    beside the brand. The header is not sticky below 760, so a second row costs no viewport. */
+ .site-header .header-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:0.375rem}
+ /* The menu panel stretched the display group to its full width; in a header row that pushed sign-in
+    onto a third line, so it goes back to hugging its one button. */
+ .site-header .header-actions .display-controls{width:auto;justify-content:flex-end}
+ .header-inner{flex-wrap:wrap}
+}

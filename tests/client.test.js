@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {api,mergePosts} from '../lib/client.js';
+import {api,feedPosts,mergePosts} from '../lib/client.js';
 const component=name=>readFileSync(new URL('../components/'+name,import.meta.url),'utf8');
 
 const UNREACHABLE='The board could not be reached. Please try again.';
@@ -129,14 +129,36 @@ test('the enrollment form names what it asks for and always has a way back',()=>
  assert.match(dialog,/step === "enroll" && adding && <p className="pass-skip">/,'Back is no longer gated on enrolled');
  assert.match(dialog,/if\(enrolled\)setStep\("manage"\);else setAdding\(false\)/,'and it reaches the offer when there is nothing to manage');
 });
-test('the sign-in card fetches lazily, names itself once, and never renders for a signed-out reader',()=>{
- const dash=component('dashboard.jsx');
- // GET /api/passphrase is a checkpoint_credentials read. Firing it on mount put that read on the
- // critical path of every signed-in page view, which is the opposite of why the enrolled flag was kept
- // out of the public board payload.
- assert.match(dash,/useEffect\(\(\)=>\{if\(!open\)return;[^\n]*api\('\/api\/passphrase'\)/,'the fetch waits for the control to be opened');
- assert.match(dash,/box\.addEventListener\('toggle',sync\)/,'and the native toggle is the trigger, so a remembered-open widget still fetches');
- assert.ok(!/useEffect\(\(\)=>\{let live=true;setError\(''\);api\('\/api\/passphrase'\)/.test(dash),'never on mount again');
- assert.equal((dash.match(/Your sign-in/g)||[]).length,1,'the label is printed once, not in the summary and the card both');
- assert.match(dash,/\{user&&board\?\.selectedUsername===user&&<>[\s\S]*<SignInCard/,'a signed-out reader renders no card, so it issues no GET either');
+// THE TWO SETTINGS CARDS WERE COPIED INTO /settings, NOT MOVED, AND BOTH COPIES WERE LIVE. Two time
+// zone selects can disagree about which 4 a.m. a day turns over on, and a passphrase must have
+// exactly one route. These assert the board has neither copy and Settings has both, once.
+test('the pace card and the passphrase card live only in /settings',()=>{
+ const dash=component('dashboard.jsx'),study=component('study.jsx');
+ const board=[dash,study,component('tabs/today-panel.jsx'),component('tabs/journal-panel.jsx'),component('tabs/progress-panel.jsx'),component('week-widget.jsx'),component('feed.jsx')].join('\n');
+ assert.ok(!/ProfileSettings/.test(study.replace(/^\/\/.*$/gm,'')),'ProfileSettings is components/settings/day-panel.jsx now');
+ assert.ok(!/SignInCard/.test(dash.replace(/^\s*\/\/.*$/gm,'')),'SignInCard is components/settings/account-panel.jsx now');
+ assert.ok(!/api\('\/api\/passphrase'\)/.test(board),'nothing on the board may read checkpoint_credentials');
+ assert.ok(!/api\('\/api\/settings'/.test(board),'and nothing on the board may write the profile');
+ // The retired keys must name cards that really are gone, or the cleanup wipes live state (see prefs).
+ for(const key of ['storageKey="sign-in"','storageKey="profile-settings"'])assert.ok(!board.includes(key),'the board still renders '+key);
+ // Settings is the single home, and the passphrase route is reached from exactly one component.
+ const account=component('settings/account-panel.jsx');
+ assert.match(account,/api\('\/api\/passphrase'\)/,'the account panel is the one route to the passphrase');
+ assert.match(component('settings/day-panel.jsx'),/id="time-zone"/,'and the day panel is the one time zone');
+ assert.equal((account.match(/Who can sign in as you/g)||[]).length,1);
+ // The board's panel no longer takes children, so a later phase cannot quietly re-nest a card in it.
+ assert.ok(!/children/.test(component('tabs/today-panel.jsx').replace(/^\/\/.*$/gm,'')),'TodayPanel takes no children');
+});
+test('compactFeed hides the hourly summary cards and nothing else',()=>{
+ const written=id=>({id,message:'A checkpoint.',bucket_start:null,study:null});
+ const hourly=id=>({id,message:'Studied 40 min.',bucket_start:'2026-10-12T18:00:00Z',study:{minutes:40}});
+ const posts=[hourly('a'),written('b'),hourly('c'),written('d')];
+ assert.deepEqual(feedPosts(posts,false).map(p=>p.id),['a','b','c','d'],'off changes nothing at all');
+ assert.deepEqual(feedPosts(posts,true).map(p=>p.id),['b','d'],'on keeps every written post');
+ // An hourly card is bucket_start != null, so undefined and a missing field both read as written.
+ assert.deepEqual(feedPosts([{id:'e'},{id:'f',bucket_start:undefined}],true).map(p=>p.id),['e','f']);
+ // Never a crash and never a different shape: this runs on the first render, before any board lands.
+ for(const empty of [null,undefined,[]])assert.deepEqual(feedPosts(empty,true),[]);
+ for(const empty of [null,undefined])assert.deepEqual(feedPosts(empty,false),[]);
+ assert.equal(feedPosts(posts,false),posts,'off must not copy the array the feed is already paging');
 });
