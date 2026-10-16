@@ -1,42 +1,48 @@
+/* These were bare TrueType sfnt containers behind a .woff2 extension, 587 KB in total and served
+   uncompressed on every first visit. They are now genuinely WOFF2 and subset to the Latin ranges the
+   board renders, which is 123 KB. ●, ☕ and ✓ are absent, but they were absent from the originals too,
+   so they fall back to a system face exactly as before -- that is why the icons are SVG. Regenerate
+   with fontTools if a glyph is ever needed: the subset keeps Latin-1, Latin Extended-A/B, combining
+   diacritics, general punctuation, currency, arrows, geometric shapes and dingbats. */
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(/assets/font-0.woff2) format('truetype');
+  src: url(/assets/font-0.woff2) format('woff2');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/assets/font-1.woff2) format('truetype');
+  src: url(/assets/font-1.woff2) format('woff2');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/assets/font-2.woff2) format('truetype');
+  src: url(/assets/font-2.woff2) format('woff2');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url(/assets/font-3.woff2) format('truetype');
+  src: url(/assets/font-3.woff2) format('woff2');
 }
 @font-face {
   font-family: 'Manrope';
   font-style: normal;
   font-weight: 800;
   font-display: swap;
-  src: url(/assets/font-4.woff2) format('truetype');
+  src: url(/assets/font-4.woff2) format('woff2');
 }
 @font-face {
   font-family: 'Newsreader';
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/assets/font-5.woff2) format('truetype');
+  src: url(/assets/font-5.woff2) format('woff2');
 }

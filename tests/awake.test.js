@@ -39,6 +39,7 @@ test('awake route stores through its RPC without XP or study posts',async()=>{
  const key='cp_'+'b'.repeat(64),previous=globalThis.fetch,calls=[];
  globalThis.fetch=async(url,options={})=>{
   const table=new URL(url).pathname.split('/').at(-1);calls.push(table);
+  if(table==='checkpoint_attempt')return Response.json({allowed:true,retry_after:60});
   if(table==='checkpoint_api_keys')return Response.json([{username:'gir'}]);
   if(table==='checkpoint_users')return Response.json([{time_zone:zone}]);
   if(table==='checkpoint_awake'){const a=JSON.parse(options.body);assert.equal(a.p_username,'gir');assert.equal(a.p_day,studyDay(new Date(a.p_awake_at),zone));assert.equal(a.p_still_up,true);return Response.json({ok:true,date:a.p_day,awake_at:'2026-01-01T12:00:00+00:00',still_up:true,last_active_at:a.p_last_active_at})}
@@ -59,6 +60,7 @@ test('board shows today’s awake row and falls back to null before the migratio
  const previous=globalThis.fetch,today=studyDay(new Date(),zone),row={post_day:'2026-10-12'};let awake=()=>Response.json([row]);
  globalThis.fetch=async url=>{
   const u=new URL(url),table=u.pathname.split('/').at(-1);
+  if(table==='checkpoint_stats')return Response.json({code:'PGRST202'},{status:404});
   if(table==='checkpoint_users')return Response.json([{username:'gir',display_name:'Varun',time_zone:zone}]);
   if(u.searchParams.get('select')==='received_at')return Response.json([]);
   if(table==='checkpoint_awake'){assert.equal(u.searchParams.get('select'),'post_day','only a yes/no is read, never the times');assert.equal(u.searchParams.get('username'),'eq.gir');assert.equal(u.searchParams.get('post_day'),'eq.'+today);return awake()}

@@ -32,7 +32,8 @@ create index if not exists checkpoint_sessions_expiry_idx on public.checkpoint_s
 alter table public.checkpoint_users enable row level security;
 alter table public.checkpoint_sessions enable row level security;
 revoke all on public.checkpoint_users, public.checkpoint_sessions from anon, authenticated;
-grant select, insert on public.checkpoint_users to service_role;
+-- Delete: /api/signup removes the user row it just created when the first session insert fails.
+grant select, insert, delete on public.checkpoint_users to service_role;
 grant select, insert, delete on public.checkpoint_sessions to service_role;
 -- Preserve identities from posts created before multi-user sessions were added.
 insert into public.checkpoint_users (username,display_name)

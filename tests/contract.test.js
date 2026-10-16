@@ -21,7 +21,10 @@ test('every request example in MISS_LOG_API.md validates',()=>{
 const read=name=>readFileSync(new URL('../'+name,import.meta.url),'utf8');
 const route=read('app/api/checkpoint/route.js'),hourlySql=read('supabase/hourly_study.sql'),awakeSql=read('supabase/awake_status.sql');
 // Keys the SQL actually returns, read off each jsonb_build_object argument list.
-const builtKeys=sql=>[...sql.matchAll(/jsonb_build_object\((.*)\)/g)].flatMap(m=>[...m[1].matchAll(/'(\w+)',/g)].map(k=>k[1]));
+// One list per jsonb_build_object in the file: checkpoint_sync has two returns (a normal hourly sync
+// and a backdated correction, which writes no card) and both must answer the documented shape.
+const builtShapes=sql=>[...sql.matchAll(/jsonb_build_object\((.*)\)/g)].map(m=>[...m[1].matchAll(/'(\w+)',/g)].map(k=>k[1]));
+const builtKeys=sql=>builtShapes(sql).flat();
 test('the documented limits, token shape, response keys and status codes match the route',()=>{
  // The doc states the cap in KiB; the route enforces the same number of bytes, twice.
  const bytes=Number(doc.match(/(\d+) KiB/)[1])*1024;
@@ -32,7 +35,7 @@ test('the documented limits, token shape, response keys and status codes match t
  assert.ok(bearer.test('Bearer cp_'+'a'.repeat(64)));
  for(const wrong of ['Bearer cp_'+'a'.repeat(63),'Bearer cp_'+'a'.repeat(65),'Bearer '+'a'.repeat(67),'cp_'+'a'.repeat(64),'Bearer cp_'+'a!'.repeat(32)])assert.ok(!bearer.test(wrong),wrong);
  // Every documented success key is one the sync RPC builds, in the same order.
- assert.deepEqual(Object.keys(replies[0]),builtKeys(hourlySql));
+ for(const shape of builtShapes(hourlySql))assert.deepEqual(shape,Object.keys(replies[0]));
  const awakeReply=route.match(/return response\(\{ok:true,date:.*?\}\);/)[0];
  for(const key of Object.keys(replies[1])){assert.ok(builtKeys(awakeSql).includes(key),key);assert.ok(awakeReply.includes(key+':'),key)}
  // still_up is stored and never documented, because it never leaves the server.

@@ -33,6 +33,8 @@ test('independent persistent device sessions share posts; sign-out revokes only 
  globalThis.fetch=async(url,options={})=>{
   const u=new URL(url),table=u.pathname.split('/').at(-1),q=u.searchParams,method=options.method||'GET';
   const body=options.body?JSON.parse(options.body):null;
+  if(table==='checkpoint_attempt')return Response.json({allowed:true,retry_after:60});
+  if(table==='checkpoint_stats')return Response.json({code:'PGRST202'},{status:404});
   if(table==='checkpoint_users'){
    if(method==='POST'){if(users.some(user=>user.username===body.username))return Response.json({}, {status:409});users.push(body);return new Response(null,{status:201})}
    return Response.json(users.filter(user=>!q.has('username')||q.get('username')==='eq.'+user.username));
@@ -73,6 +75,6 @@ test('pagination includes same-time rows using the ID as a second cursor key',as
  process.env.SUPABASE_URL='https://example.supabase.co';process.env.SUPABASE_SECRET_KEY='test-secret';
  const previous=globalThis.fetch,time='2026-10-11T12:00:00+00:00';let paging=false;
  const rows=Array.from({length:51},(_,i)=>({id:'00000000-0000-4000-8000-'+String(100-i).padStart(12,'0'),username:'brother',message:'Test',created_at:time,post_day:'2026-10-11'}));
- globalThis.fetch=async url=>{const u=new URL(url);if(u.pathname.endsWith('checkpoint_breaks')||u.pathname.endsWith('checkpoint_study_days')||u.pathname.endsWith('checkpoint_awake'))return Response.json([]);if(u.pathname.endsWith('checkpoint_users'))return Response.json([{username:'brother',display_name:'Alex'}]);if(u.pathname.endsWith('checkpoint_days'))return Response.json([{post_day:'2026-10-11'}]);if(paging){assert.match(u.searchParams.get('or'),/and\(created_at.eq./);assert.match(u.searchParams.get('or'),/id.lt./);return Response.json(rows.slice(50))}return Response.json(rows)};
+ globalThis.fetch=async url=>{const u=new URL(url);if(u.pathname.endsWith('checkpoint_stats'))return Response.json({code:'PGRST202'},{status:404});if(u.pathname.endsWith('checkpoint_breaks')||u.pathname.endsWith('checkpoint_study_days')||u.pathname.endsWith('checkpoint_awake'))return Response.json([]);if(u.pathname.endsWith('checkpoint_users'))return Response.json([{username:'brother',display_name:'Alex'}]);if(u.pathname.endsWith('checkpoint_days'))return Response.json([{post_day:'2026-10-11'}]);if(paging){assert.match(u.searchParams.get('or'),/and\(created_at.eq./);assert.match(u.searchParams.get('or'),/id.lt./);return Response.json(rows.slice(50))}return Response.json(rows)};
  try{const response=await board(request('/api/board'));assert.equal(response.status,200);const result=await response.json();assert.equal(result.posts.length,50);paging=true;const next=await (await board(request('/api/board?before='+encodeURIComponent(result.next)))).json();assert.equal(next.posts.length,1);assert.equal(next.next,null);assert.equal((await board(request('/api/board?before=invalid'))).status,400)}finally{globalThis.fetch=previous}
 });
