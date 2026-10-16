@@ -1,0 +1,16 @@
+/* The passphrase steps borrow the dialog's own type, inputs and primary button, so only the field group, the checkbox row and the recovery-code block are new. --sage and --green already carry all four themes, which is why nothing here needs a dark or high-contrast restatement. */
+#entry-dialog .pass-field{text-align:left}
+#entry-dialog .pass-field label{margin:1.125rem 0 0.5rem}
+#entry-dialog .pass-field>label:first-child{margin-top:0}
+#entry-dialog .pass-help{text-align:left;font-size:0.6875rem;line-height:1.6;margin:0.5rem 0 0}
+#entry-dialog .pass-skip{margin:0.875rem 0 0}
+#entry-dialog .pass-check{display:flex;align-items:center;gap:0.625rem;min-height:24px;margin:1.125rem 0 0;font-size:0.8125rem;cursor:pointer}
+/* The shared input rule stretches every field to the full dialog width; a tick box is not a field. The 24px is absolute because SC 2.5.8 is in CSS pixels and a rem box shrinks with the Small scale. */
+.pass-check input[type=checkbox]{width:24px;height:24px;min-width:24px;flex:none;margin:0;padding:0;background:none;border:0;accent-color:var(--green)}
+.pass-code{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0.75rem;margin:0 0 1.125rem;padding:1rem;border:0.0625rem solid var(--line);border-radius:0.75rem;background:var(--sage)}
+.pass-code code{flex:1 1 9rem;min-width:0;font:700 0.875rem/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0.0625rem;color:var(--ink);overflow-wrap:break-word;text-align:center}
+.copy-code{min-height:24px;padding:0.4375rem 0.75rem;border:0.0625rem solid var(--green);border-radius:0.5rem;background:none;color:var(--green);font-size:0.8125rem;font-weight:700}
+@media(pointer:coarse){#entry-dialog .pass-check,.copy-code{min-height:2.75rem}}
+/* The sign-in error carries the passphrase copy now, so it is read far more often than it was. #a1533b is 2.44:1 on the dark dialog; high contrast reuses the ink token the rest of the sheet uses. */
+html[data-dark=true] #join-error{color:#f0a98f}
+html[data-contrast=true] #join-error{color:var(--ink)}

@@ -1,0 +1,4 @@
+/* The pace widget lays its button and its footnote out with the .profile-settings form's flex row, and
+   .profile-settings small is width:100% because of it. This card has nothing to submit, so it states
+   that row itself rather than wrapping a plain button in a form that would never be posted. */
+.sign-in-actions{display:flex;flex-wrap:wrap;align-items:center;gap:0.625rem;margin-top:1.25rem}

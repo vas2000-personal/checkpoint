@@ -91,7 +91,9 @@ const boardStub=(posts,extra={})=>install((table,u)=>{
  if(table==='checkpoint_days')return Response.json((extra.days||[today]).map(post_day=>({post_day})));
  if(table==='checkpoint_breaks')return Response.json(extra.breaks||[]);
  if(table==='checkpoint_study_days')return Response.json(extra.studyDays||[]);
- if(table==='checkpoint_awake')return extra.awake??Response.json([]);
+ // A function, when the same answer has to be given twice: awakeFor and connectedFor both ask, and
+ // one Response body can only be read once.
+ if(table==='checkpoint_awake')return typeof extra.awake==='function'?extra.awake():extra.awake??Response.json([]);
 });
 const COUNTS={minutes:90,sessions:2,questions:40,correct:36,cards_reviewed:12,target_minutes:60,target_hit:true};
 const hourPost=(id,message,minutesAgo)=>({id,username:'gir',message,created_at:'2026-10-12T18:00:00Z',post_day:today,study:{...COUNTS},source_updated_at:'2026-10-12T18:00:00Z',received_at:new Date(Date.now()-minutesAgo*60000).toISOString(),bucket_start:'2026-10-12T18:00:00Z'});
@@ -116,13 +118,24 @@ test('no per-hour timestamp reaches the browser; the server decides "Studying no
  }finally{restore()}
 });
 test('a failing awake or connected query leaves the family a working board',async()=>{
- const {restore}=boardStub([],{awake:Response.json({message:'boom'},{status:500})});
+ // Both pills are decoration, so every failure degrades to false. A 404 that is NOT the missing
+ // table (PGRST205) is still a fault though, and must be logged rather than read as "not awake".
+ for(const answer of [()=>Response.json({message:'boom'},{status:500}),()=>Response.json({code:'PGRST002'},{status:404})]){
+  const {restore}=boardStub([],{awake:answer});
+  const quiet=console.error,logged=[];console.error=(...parts)=>logged.push(parts.join(' '));
+  try{
+   const board=await getBoard(null,'gir',null);
+   assert.equal(board.awake,false);assert.equal(board.connected,false);
+   assert.equal(board.displayName,'Varun');assert.equal(board.stats.xp,100);
+   assert.ok(logged.some(line=>line.startsWith('Optional board status failed:')),'the failure is still logged server-side');
+  }finally{restore();console.error=quiet}
+ }
+ // The documented fallback stays silent: before supabase/awake_status.sql there is no table.
+ const {restore}=boardStub([],{awake:()=>Response.json({code:'PGRST205'},{status:404})});
  const quiet=console.error,logged=[];console.error=(...parts)=>logged.push(parts.join(' '));
  try{
-  const board=await getBoard(null,'gir',null);
-  assert.equal(board.awake,false);assert.equal(board.connected,false);
-  assert.equal(board.displayName,'Varun');assert.equal(board.stats.xp,100);
-  assert.ok(logged.some(line=>line.startsWith('Optional board status failed:')),'the failure is still logged server-side');
+  assert.equal((await getBoard(null,'gir',null)).awake,false);
+  assert.ok(!logged.some(line=>line.startsWith('Optional board status failed:')),'a migration that is simply not applied is not a failure');
  }finally{restore();console.error=quiet}
 });
 test('stats come from one RPC, and the fallback walk matches it day for day across a break',async()=>{
