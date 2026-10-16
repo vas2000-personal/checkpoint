@@ -1,0 +1,5 @@
+/* Sizes between the breakpoints, not only at them. 25rem is 500px at the Large scale, which overflows .intro above the 760px stack; three fixed columns clip the weekly labels at the same scale. */
+.hero-art{width:min(100%,25rem);min-width:0;flex-shrink:1}
+.weekly-totals{grid-template-columns:repeat(auto-fit,minmax(3.5rem,1fr))}
+@media(min-width:1100px){/* The sticky aside cleared the viewport, not the sticky header. */aside{top:calc(5.375rem + env(safe-area-inset-top) + 1.5rem)}}
+@media(min-width:601px) and (max-width:760px){/* The 12.5rem cap exists to leave the filter tabs room on one row; above 600px there is room. */.feed-heading h2{max-width:none}}

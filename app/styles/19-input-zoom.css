@@ -1,0 +1,3 @@
+/* iOS Safari zooms any focused control under 16px and never zooms back out; the viewport stays pinch-zoomable on purpose. */
+input,textarea,select{font-size:max(1rem,16px)}
+input{padding:0.625rem 0.875rem}

@@ -1,0 +1,12 @@
+"use client";
+export default function Adventure({board,stats}){
+ const marker=[[71,205],[130,174],[190,140]][Math.floor((stats.xp%300)/100)]||[71,205];
+ return <section className="card adventure"><div className="card-heading"><div><span className="eyebrow">THE BIGGER PICTURE</span><h2>{board ? `${board.displayName}’s adventure` : "Your adventure"}</h2></div><span className="pill" id="level-pill">LEVEL {board?String(stats.level).padStart(2,"0"):"—"}</span></div>
+      <div className="trail-scene"><svg viewBox="0 0 340 230" role="img" aria-label="Progress trail to your next level"><defs><linearGradient id="sky" x2="0" y2="1"><stop stopColor="#314f42"/><stop offset="1" stopColor="#61755d"/></linearGradient></defs><rect width="340" height="230" fill="url(#sky)"/><circle cx="254" cy="54" r="23" fill="#dec18b"/><path d="m-20 160 100-86 72 88 43-39 80 86H-20" fill="#5d7461"/><path d="m150 185 104-80 100 82v70H150" fill="#758773"/><path d="M-10 210Q70 140 150 208T360 175v70H-10" fill="#87977b"/><path d="M19 235Q79 200 130 174T188 142T253 90" fill="none" stroke="#decfaa" strokeWidth="14" strokeLinecap="round"/><path d="M19 235Q79 200 130 174T188 142T253 90" fill="none" stroke="#687b5f" strokeWidth="1.5" strokeDasharray="3 7"/>
+        <g fill="#314f42"><path d="m38 151 14-30 14 30H38m3 10 11-23 11 23H41"/><path d="m289 195 13-28 13 28h-26m3 9 10-23 10 23h-20"/></g><path d="M253 90V47" stroke="#f2e9d9" strokeWidth="2"/><path d="M254 48h23l-5 7 5 7h-23Z" fill="#d9bc7d"/>
+        <circle cx="71" cy="205" r="7" fill="#f0e6cd"/><circle cx="130" cy="174" r="7" fill="#f0e6cd"/><circle cx="190" cy="140" r="7" fill="#f0e6cd"/>
+        <g id="trail-marker" transform={`translate(${marker[0]} ${marker[1]})`}><circle r="15" fill="#f2e7cc" stroke="#314f42" strokeWidth="4"/><path d="m-5 0 3 3 7-7" stroke="#314f42" strokeWidth="2" fill="none" strokeLinecap="round"/></g></svg>
+      <span className="trail-caption">THE CONSISTENCY TRAIL <span>01</span></span><span className="trail-location" id="trail-location">{stats.xp % 300 === 0 ? "A new trail begins" : "One checkpoint closer"}</span></div>
+      <div className="level-progress"><div><strong id="next-level">Next stop: level {board ? stats.level + 1 : "—"}</strong><span id="xp-next">{board ? stats.xp % 300 : "—"} / 300 XP</span></div><div className="bar"><i id="progress-bar" style={{width:`${stats.xp % 300 / 3}%`}} /></div><p>A little work. A little XP. A little further.</p><small>100 XP per day you post · 300 XP per level</small></div>
+    </section>
+}

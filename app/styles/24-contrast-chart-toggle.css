@@ -1,0 +1,2 @@
+/* Light high contrast forced the active toggle's label to --ink through the :is() text list while its own #314f42 fill survived, leaving 2.09:1. Restate the pressed pair the way every other pressed control is restated. */
+html[data-contrast=true] .chart-toggle button.active{background:var(--green);color:var(--paper)}

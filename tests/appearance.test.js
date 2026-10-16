@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {cascade} from '../scripts/css-cascade.mjs';
-const sheet=readFileSync(new URL('../app/globals.css',import.meta.url),'utf8').replace(/^﻿/,'');
+import {readFileSync,readdirSync} from 'node:fs';
+import {cascade,source} from '../scripts/css-cascade.mjs';
+const sheet=source(new URL('../app/globals.css',import.meta.url));
 const layout=readFileSync(new URL('../app/layout.jsx',import.meta.url),'utf8');
 const {map}=cascade();
 const at=(ctx,sel,prop)=>map[ctx+'||'+sel+'||'+prop];
@@ -634,4 +634,15 @@ test('the boot script still paints the theme when storage or the meta tag is hos
  assert.deepEqual(headless.dataset,{...expected,dark:'true'},'a missing meta must not cost the dataset attributes');
  assert.ok(headless.observed,'a missing meta must not stop the MutationObserver from registering');
  assert.deepEqual(headless.observed.options,{attributeFilter:['data-dark','data-contrast']});
+});
+// globals.css is nothing but an ordered manifest now, so a new partial that nobody imports is dead CSS
+// the snapshot would happily bless. The numbers in the filenames ARE the cascade: assert both halves.
+test('every stylesheet partial is imported exactly once, in order',()=>{
+ const manifest=readFileSync(new URL('../app/globals.css',import.meta.url),'utf8');
+ const imported=[...manifest.matchAll(/@import\s+'\.\/styles\/([^']+)'/g)].map(m=>m[1]);
+ const onDisk=readdirSync(new URL('../app/styles/',import.meta.url)).filter(name=>name.endsWith('.css')).sort();
+ assert.deepEqual([...imported].sort(),onDisk,'app/styles and the globals.css manifest disagree');
+ assert.equal(new Set(imported).size,imported.length,'a partial is imported twice');
+ assert.deepEqual(imported,[...imported].sort(),'imports are out of numeric order, so the cascade no longer matches the filenames');
+ assert.equal(manifest.replace(/@import[^;]+;|\/\*[\s\S]*?\*\/|\s/g,''),'','globals.css must hold nothing but the manifest');
 });

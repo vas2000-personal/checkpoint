@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import config from '../next.config.mjs';
+import {source} from '../scripts/css-cascade.mjs';
 const css=readFileSync(new URL('../public/assets/fonts.css',import.meta.url),'utf8');
 const faces=[...css.matchAll(/src:\s*url\(([^)]+)\)\s*format\('([^']+)'\)/g)].map(m=>({url:m[1],hint:m[2]}));
 // A container's real format, from its first four bytes, not from what the file is named.
@@ -16,7 +17,7 @@ test('every @font-face declares a format() hint that matches the file it points 
 });
 
 test('every weight fonts.css declares is actually asked for by globals.css',()=>{
-  const globals=readFileSync(new URL('../app/globals.css',import.meta.url),'utf8');
+  const globals=source(new URL('../app/globals.css',import.meta.url));
   const declared=[...css.matchAll(/font-weight:\s*(\d+)/g)].map(m=>m[1]);
   // Weights reach the cascade either as `font-weight:N` or inside the `font:` shorthand.
   const used=new Set([...globals.matchAll(/font-weight:\s*(\d+)|font:\s*(?:italic\s+)?(\d{3})\s/g)].map(m=>m[1]||m[2]));

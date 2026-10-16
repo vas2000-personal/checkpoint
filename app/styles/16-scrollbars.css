@@ -1,0 +1,7 @@
+/* Slim scrollbars reveal during scrolling, hover, or keyboard focus. */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:transparent;border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+*:not(html){scrollbar-width:thin;scrollbar-color:transparent transparent}
+*:not(html):hover,*:not(html):focus-within{scrollbar-color:#829887 transparent}
+*:not(html):not(body):hover::-webkit-scrollbar-thumb,*:not(html):not(body):focus-within::-webkit-scrollbar-thumb{background-color:#829887}
