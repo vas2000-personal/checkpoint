@@ -502,7 +502,7 @@ test('the focus ring is one definition and stays visible on every surface it can
  // The /settings surfaces are either the control itself (.settings-nav a, .settings-choice,
  // .settings-switch) or sit inside .card .profile-settings, which is already on the rim list above
  // and therefore rims every input, button and summary within them.
- const NOT_CONTAINERS=new Set(['input','textarea','select','.day','.post-avatar','.study-bar-track','.load-more','.post-status','.close','.empty','.filter-tabs button.active','.writing-prompts button','.display-button','.scale-options button','.study-metric-details[open] .metric-expand','.settings-nav a','.settings-choice','.settings-switch','.theme-option','.settings-meta>div']);
+ const NOT_CONTAINERS=new Set(['input','textarea','select','.day','.post-avatar','.study-bar-track','.load-more','.post-status','.close','.empty','.filter-tabs button.active','.writing-prompts button','.display-button','.scale-options button','.study-metric-details[open] .metric-expand','.settings-nav a','.settings-choice','.settings-switch','.theme-option','.settings-meta>div','.landing-button']);
  assert.deepEqual([...paperSurfaces].filter(s=>!rimmed.has(s)&&!NOT_CONTAINERS.has(s)).sort(),[],
   'these paint --paper and can hold a focusable control, but the rim there is still page-colored');
  const RIMS=[['var(--bg)','the page'],['var(--paper)','a card']];

@@ -197,3 +197,31 @@ test('signing in on a phone never costs the reader their navigation',()=>{
  const sheet=readFileSync(new URL('../app/styles/33-board-tabs.css',import.meta.url),'utf8');
  assert.match(sheet,/html:has\(\.composer textarea:focus\) \.board-tabs\{display:none\}/);
 });
+
+// ---------------------------------------------------------------------------------------------
+// THE LANDING PAGE MUST NOT CLOSE THE PUBLIC BOARD. app/page.jsx shows the door only to a visitor
+// with no session on a bare `/`; a ?tab=, a ?user= or a session all have to reach the board, because
+// a parent reading this board is signed out by design and usually arrives on a link that names one.
+// The gate is a source assertion rather than a render: app/page.jsx is an async server component
+// that reads cookies through next/headers, which does not run outside a request.
+// ---------------------------------------------------------------------------------------------
+test('the landing page is shown only at a bare / with no session, and every link past it works',()=>{
+ const page=readFileSync(new URL('../app/page.jsx',import.meta.url),'utf8');
+ const gate=/if\(!viewer&&raw\.tab===undefined&&raw\.user===undefined\)return <Landing\/>;/.exec(page);
+ assert.ok(gate,'the landing gate is gone or its shape changed: a signed-out parent may have lost the board');
+ // Every condition is an AND, so each one on its own is a way THROUGH to the board.
+ assert.match(page,/const viewer=await currentUser/,'the gate must read the real session, not a guess');
+ assert.ok(page.indexOf('const viewer=')<page.indexOf('return <Landing/>'),'the session is read before the gate decides');
+ assert.ok(page.indexOf('return <Landing/>')<page.indexOf('<Dashboard'),'the gate must precede the board render, or the board is built and thrown away');
+
+ const landing=readFileSync(new URL('../components/landing.jsx',import.meta.url),'utf8');
+ // Every board button names its tab explicitly. tabHref('today') is '/', which is the landing itself:
+ // a Today button written that way would be a door that opens onto its own doorstep.
+ for(const [slug] of SLOTS.filter(([s])=>s!=='settings'))
+  assert.match(landing,new RegExp(`${slug}:'/\\?tab=${slug}'`),'the '+slug+' button must name its tab, or it lands back on the landing page');
+ assert.match(landing,/settings:'\/settings'/,'Settings is a real route, not a board tab');
+ assert.doesNotMatch(landing,/href="\/"/,'a bare / href on the landing page is a link to itself');
+ // One slot table for the landing and both bottom navs, so a destination keeps one name everywhere.
+ assert.match(landing,/from '\.\/tabs\/slugs\.js'/,'the landing must read SLOTS, not retype the labels');
+ for(const [,label] of SLOTS)assert.ok(!new RegExp('>'+label+'<').test(landing),'the landing hard-codes the label "'+label+'" instead of mapping SLOTS');
+});
