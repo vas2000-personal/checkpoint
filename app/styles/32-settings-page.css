@@ -101,3 +101,30 @@ a.settings-save{display:inline-flex;align-items:center;justify-content:center;ga
    line or it reads as an ordinary paragraph. The VALUE is the theme token either way. */
 html[data-dark=true] .profile-settings p[role=alert]{color:var(--alert)}
 html[data-contrast=true] .profile-settings p[role=alert]{color:var(--ink)}
+
+/* THE SYNC KEY CONTROL (components/settings/sync-key.jsx). Tokens only, like the rest of this sheet,
+   so the five themes and dark/high contrast reach it without a rule of its own. */
+.sync-key{display:flex;flex-direction:column;gap:.875rem;margin-top:1rem}
+.sync-key-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.sync-key-list li{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;padding:.625rem .75rem;border:0.0625rem solid var(--line);border-radius:.75rem;background:var(--wash)}
+.sync-key-id{display:flex;flex-direction:column;gap:.125rem;min-width:0}
+.sync-key-id code{font-size:.875rem;font-weight:700;letter-spacing:.0625rem}
+.sync-key-id small{color:var(--text);font-size:.75rem}
+/* Revoking is the destructive one, so it is outlined rather than filled: the filled accent on this
+   page means "the thing you came to do", and that is making a key. */
+.sync-key-revoke,.sync-key-danger{min-height:max(2.75rem,44px);padding:.4375rem .875rem;border:0.0625rem solid var(--alert);border-radius:.5rem;background:none;color:var(--alert);font-size:.8125rem;font-weight:700}
+.sync-key-confirm{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.sync-key-confirm strong{font-size:.8125rem}
+/* The one moment the key exists outside Miss Log, so it gets the accent border the recovery code gets
+   and room for 67 characters to wrap rather than spill out of the card. */
+.sync-key-reveal{padding:.875rem 1rem;border:0.0625rem solid var(--green);border-radius:.75rem;background:var(--wash)}
+.sync-key-reveal h4{margin:0 0 .25rem;font-size:.9375rem;font-weight:700}
+.sync-key-reveal p{font-size:.8125rem;margin-bottom:.625rem}
+.sync-key-reveal .pass-code code{overflow-wrap:anywhere;font-size:.8125rem}
+.sync-key-actions{display:flex;align-items:center;gap:.875rem;flex-wrap:wrap}
+.sync-key-actions .primary{flex:0 0 auto}
+@media(max-width:600px){
+ .sync-key-list li{align-items:flex-start;flex-direction:column}
+ .sync-key-actions{align-items:stretch;flex-direction:column}
+ .sync-key-actions .primary{width:100%}
+}

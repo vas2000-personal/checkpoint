@@ -61,6 +61,18 @@ export default function Dashboard({initialBoard=null,initialTab='today',initialU
   // only by an enrollment in this tab, so an ordinary visitor — a parent on the public board, or the
   // owner's already-paired device — has nothing stashed and is still asked for nothing.
   useEffect(()=>{if(user&&heldRecoveryCode(user))entryRef.current?.open('change',user)},[user]);
+  // THE LANDING PAGE'S SIGN IN BUTTON. components/landing.jsx is a server component with no dialog of
+  // its own, so it links to the board with ?signin — the board opens the REAL dialog on arrival
+  // rather than the landing growing a second copy of enrollment, passphrases and recovery codes. The
+  // parameter is stripped immediately so a reload, a Back, or a shared copy of the URL is an ordinary
+  // board link; a visitor who is already signed in is sent nowhere and shown nothing.
+  useEffect(()=>{
+   const url=new URL(location.href);
+   if(!url.searchParams.has('signin'))return;
+   url.searchParams.delete('signin');
+   history.replaceState(history.state,'',url.pathname+url.search+url.hash);
+   if(!user)entryRef.current?.open('signin');
+  },[]);
   function openAuth(mode){entryRef.current?.open(mode)}
   // AUTO-FOCUS ONLY WHERE THE KEYBOARD CANNOT TAKE THE NAVIGATION WITH IT. Focusing the composer
   // raises the soft keyboard, which fires the deliberate `html:has(.composer textarea:focus)
