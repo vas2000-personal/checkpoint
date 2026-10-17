@@ -28,7 +28,6 @@
 @import './styles/27-dark-accent-ink.css';
 @import './styles/28-passphrase.css';
 @import './styles/29-sign-in-card.css';
-@import './styles/30-accent-palettes.css';
 @import './styles/31-motion-preference.css';
 @import './styles/32-settings-page.css';
 @import './styles/33-board-tabs.css';
@@ -38,3 +37,4 @@
 @import './styles/37-board-rhythm.css';
 @import './styles/38-error-not-color-alone.css';
 @import './styles/39-board-top-gap.css';
+@import './styles/40-themes.css';

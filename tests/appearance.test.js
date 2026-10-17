@@ -72,24 +72,24 @@ function matches(probe,target) {
 }
 const RULES=topRules(sheet).flatMap(([prelude,body],order)=>splitTop(prelude,',').map(sel=>{
  const dark=/\[data-dark=true\]/.test(sel),contrast=/\[data-contrast=true\]/.test(sel);
- // The accent picker multiplies the themes: an accent palette overrides --green and --focus, so a
- // rule scoped to one accent must be read only while that accent is the one selected.
- const accent=(sel.match(/\[data-accent=([\w-]+)\]/)||[])[1]||null;
+ // The theme multiplies dark and contrast: a theme block restates the whole token vocabulary, so a
+ // rule scoped to one theme must be read only while that theme is the one selected.
+ const theme=(sel.match(/\[data-theme=([\w-]+)\]/)||[])[1]||null;
  const prefix=(sel.match(/^html(\[data-[\w-]+=[^\]]*\])*/)||[''])[0];
  let rest=sel.slice(prefix.length).trim();
  if(rest===''||rest===':root')rest='html';
- return {order,dark,contrast,accent,scoped:/data-(focus|scale)/.test(sel),
+ return {order,dark,contrast,theme,scoped:/data-(focus|scale)/.test(sel),
   targets:branches(rest),specificity:spec(prefix)+Math.max(...branches(rest).map(spec)),decls:decls(body)};
 }));
 const BASE_THEMES=[{name:'light',dark:false,contrast:false},{name:'dark',dark:true,contrast:false},
  {name:'high contrast',dark:false,contrast:true},{name:'dark + high contrast',dark:true,contrast:true}];
-// lib/prefs.js ACCENTS, the five palettes the picker offers. Every contrast guard below walks accent
-// x theme — twenty combinations, not four — because an accent that only passed in forest's theme
+// lib/prefs.js THEMES, the five palettes the picker offers. Every contrast guard below walks theme
+// x dark x contrast — twenty combinations, not four — because a palette that only passed at forest's
 // would be a readable default shipped with four unreadable alternatives. Forest is first, so the
 // THEMES[0] probes and the failure messages still read as the shipped look.
-const ACCENT_SLUGS=['forest','ocean','plum','clay','ink'];
-const THEMES=BASE_THEMES.flatMap(base=>ACCENT_SLUGS.map(accent=>({...base,accent,name:base.name+' / '+accent})));
-const applies=(rule,theme)=>!rule.scoped&&(!rule.dark||theme.dark)&&(!rule.contrast||theme.contrast)&&(!rule.accent||rule.accent===theme.accent);
+const THEME_SLUGS=['forest','ocean','plum','clay','ink'];
+const THEMES=BASE_THEMES.flatMap(base=>THEME_SLUGS.map(theme=>({...base,theme,name:base.name+' / '+theme})));
+const applies=(rule,theme)=>!rule.scoped&&(!rule.dark||theme.dark)&&(!rule.contrast||theme.contrast)&&(!rule.theme||rule.theme===theme.theme);
 function winner(probe,prop,theme) {
  let best=null;
  for(const rule of RULES){
@@ -291,7 +291,7 @@ test('every themed text list that recolors a control also restates its filled st
    for(const filled of PRESSED.map(([sel])=>sel)){
     if(!filled.startsWith(target+'.')&&!filled.startsWith(target+'['))continue;
     // The text list matches the filled control too; something later must restate its background.
-    const theme=THEMES.find(t=>(!rule.dark||t.dark)&&(!rule.contrast||t.contrast)&&(rule.dark||!t.dark)&&(rule.contrast||!t.contrast)&&t.accent===(rule.accent||'forest'));
+    const theme=THEMES.find(t=>(!rule.dark||t.dark)&&(!rule.contrast||t.contrast)&&(rule.dark||!t.dark)&&(rule.contrast||!t.contrast)&&t.theme===(rule.theme||'forest'));
     if(!theme)continue;
     const owner=RULES.filter(r=>applies(r,theme)&&r.decls['background']!==undefined&&r.targets.some(t=>t===filled))
      .sort((a,b)=>a.specificity-b.specificity||a.order-b.order).at(-1);
@@ -323,7 +323,7 @@ test('a current-slot pill clears 3:1 against the page in every theme',()=>{
  for(const [sel,ctx] of CURRENT){
   const fill=at(ctx,sel,'background');
   assert.ok(fill,sel+' states no fill in '+(ctx||'the base context')+', so the current slot has no indicator');
-  assert.equal(fill,'var(--green)',sel+' hard-codes its fill instead of taking the accent token: '+fill);
+  assert.equal(fill,'var(--green)',sel+' hard-codes its fill instead of taking the theme token: '+fill);
   for(const theme of THEMES){
    const bg=hex('var(--bg)',theme,'page'),r=ratio(hex(fill,theme,sel),bg);
    if(r<3)failing.push(theme.name+': '+sel+' '+fill+' on '+bg+' = '+r.toFixed(2)+':1 (SC 1.4.11 needs 3:1)');
@@ -502,7 +502,7 @@ test('the focus ring is one definition and stays visible on every surface it can
  // The /settings surfaces are either the control itself (.settings-nav a, .settings-choice,
  // .settings-switch) or sit inside .card .profile-settings, which is already on the rim list above
  // and therefore rims every input, button and summary within them.
- const NOT_CONTAINERS=new Set(['input','textarea','select','.day','.post-avatar','.study-bar-track','.load-more','.post-status','.close','.empty','.filter-tabs button.active','.writing-prompts button','.display-button','.scale-options button','.study-metric-details[open] .metric-expand','.settings-nav a','.settings-choice','.settings-switch','.accent-option','.settings-meta>div']);
+ const NOT_CONTAINERS=new Set(['input','textarea','select','.day','.post-avatar','.study-bar-track','.load-more','.post-status','.close','.empty','.filter-tabs button.active','.writing-prompts button','.display-button','.scale-options button','.study-metric-details[open] .metric-expand','.settings-nav a','.settings-choice','.settings-switch','.theme-option','.settings-meta>div']);
  assert.deepEqual([...paperSurfaces].filter(s=>!rimmed.has(s)&&!NOT_CONTAINERS.has(s)).sort(),[],
   'these paint --paper and can hold a focusable control, but the rim there is still page-colored');
  const RIMS=[['var(--bg)','the page'],['var(--paper)','a card']];
@@ -570,14 +570,14 @@ const CONTROLS=[
  ['.profile-settings select',''],['.profile-settings input',''],['.load-more',''],
  ['.metric-expand',''],['.study-metric-details>summary',''],['.compact-widget>summary',''],
  ['.footer-brand',''],['.mobile-menu-button','@media(max-width:760px)'],
- ['.settings-nav a',''],['.settings-choice',''],['.settings-switch',''],['.accent-option',''],
+ ['.settings-nav a',''],['.settings-choice',''],['.settings-switch',''],['.theme-option',''],
  ['.settings-back',''],['.settings-reveal>summary',''],['.settings-bottom-nav a',''],
  // The phone's PRIMARY navigation, and the header link it stands in for above 760px. Both pass; this
  // registry said "every interactive control in the sheet" while omitting the two most used of all.
  ['.board-tab',''],['.header-settings',''],
  // The accent radio used to set min-height:0/min-width:0, opting out of the floor on purpose; it is
  // pinned to a 24px square now, the way .pass-check input[type=checkbox] already was.
- ['.accent-option input',''],['.copy-code',''],
+ ['.theme-option input',''],['.copy-code',''],
  // The dialog's tick box, and the row that carries its target; neither was in this registry.
  ['.pass-check input[type=checkbox]',''],['#entry-dialog .pass-check',''],
 ];
@@ -591,7 +591,7 @@ const TARGET_EXCEPTIONS={
  // stretch, and in both cases the LABEL wraps the input, so the whole row activates it. Verified in
  // a real browser rather than inferred: clicking the accent row 154px to the right of the radio, at
  // the row's top edge, switches the accent, and so does the opposite corner of a different row.
- '.accent-option input':['native radio, user-agent sized; the .accent-option label row is the target','.accent-option'],
+ '.theme-option input':['native radio, user-agent sized; the .theme-option label row is the target','.theme-option'],
  '.pass-check input[type=checkbox]':['native checkbox, user-agent sized; the .pass-check label row is the target, and that label both wraps the input and names it with htmlFor','#entry-dialog .pass-check'],
 };
 // Height a control actually occupies with a fine pointer, at a given root size.
@@ -650,7 +650,7 @@ test('no control parks its target floor behind a coarse pointer, and the floors 
  }
  assert.deepEqual(bare,[],'these state a rem floor that shrinks below 44px with the display scale');
  // The two native tick boxes keep an absolute 24px square: that is their own size, not their target.
- for(const sel of ['.accent-option input','.pass-check input[type=checkbox]'])
+ for(const sel of ['.theme-option input','.pass-check input[type=checkbox]'])
   assert.equal(at('',sel,'height'),'24px',sel+' must stay a 24px square rather than stretch to fill its row');
  // Below 760px the board tab grows to the full 3.5rem slot the fixed bar is built around, and the
  // settings bar matches it: the two bars sit at the same screen position.
@@ -794,9 +794,9 @@ function boot(stored,{meta=true}={}) {
  return {dataset:element.dataset,content:tag.content,observed};
 }
 test('the boot script still paints the theme when storage or the meta tag is hostile',()=>{
- // The default stamp. accent and reduceMotion joined it when lib/prefs.js took over the shape; the
+ // The default stamp. theme and reduceMotion joined it when lib/prefs.js took over the shape; the
  // script-versus-module agreement itself is asserted in tests/prefs.test.js.
- const expected={dark:'false',contrast:'false',focus:'false',scale:'normal',accent:'forest',reduceMotion:'system'};
+ const expected={dark:'false',contrast:'false',focus:'false',scale:'normal',theme:'forest',reduceMotion:'system'};
  // The shape the guard was written for, plus the shapes it missed.
  for(const stored of [null,'{}','{"dark":true}','null','"null"','0','false','[]','"not json at all','{"scale":"huge"}']){
   const {dataset,observed}=boot(stored);
@@ -808,6 +808,8 @@ test('the boot script still paints the theme when storage or the meta tag is hos
  // A literal "null" is the case `||'{}'` does not cover: JSON.parse returns null and s[k] throws.
  assert.deepEqual(boot('null').dataset,expected,'a stored literal null must fall back to defaults, not abort the script');
  assert.deepEqual(boot('{"dark":true,"scale":"large"}').dataset,{...expected,dark:'true',scale:'large'});
+ // No CSSOM in this sandbox, so --bg reads empty and the script falls back to the shipped forest
+ // pair -- the same path a real first paint takes before the stylesheet has parsed.
  assert.equal(boot('{"dark":true}').content,'#14221b','the meta must be repainted for the stored theme');
  assert.equal(boot('{"contrast":true}').content,'#fff');
  assert.equal(boot('{"dark":true,"contrast":true}').content,'#000');
@@ -815,7 +817,7 @@ test('the boot script still paints the theme when storage or the meta tag is hos
  const headless=boot('{"dark":true}',{meta:false});
  assert.deepEqual(headless.dataset,{...expected,dark:'true'},'a missing meta must not cost the dataset attributes');
  assert.ok(headless.observed,'a missing meta must not stop the MutationObserver from registering');
- assert.deepEqual(headless.observed.options,{attributeFilter:['data-dark','data-contrast']});
+ assert.deepEqual(headless.observed.options,{attributeFilter:['data-dark','data-contrast','data-theme']});
 });
 // globals.css is nothing but an ordered manifest now, so a new partial that nobody imports is dead CSS
 // the snapshot would happily bless. The numbers in the filenames ARE the cascade: assert both halves.
@@ -848,7 +850,9 @@ test('a settings panel alert is distinguishable from body copy wherever the them
   assert.notEqual(alert,body,theme.name+': the alert is the same color as the paragraph above it');
   assert.ok(ratio(alert,surfaceColor)>=7,theme.name+': the alert is '+ratio(alert,surfaceColor).toFixed(2)+':1 on '+surfaceColor);
  }
- // The dialog's own error already carried a dark restatement; the panels are held to the same one.
- assert.equal(winner('#join-error','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0ad97');
- assert.equal(winner('.profile-settings p[role=alert]','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0ad97');
+ // Both errors take ONE token now, so the dialog's error and the panel's cannot drift apart again --
+ // and the token is per theme, which is what the ratio check above is really proving.
+ const night=THEMES.find(t=>t.dark&&!t.contrast);
+ assert.equal(winner('#join-error','color',night),'var(--alert)');
+ assert.equal(winner('.profile-settings p[role=alert]','color',night),'var(--alert)');
 });

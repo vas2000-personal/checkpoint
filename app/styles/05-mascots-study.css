@@ -2,7 +2,7 @@
    THE ACCENT-BEARING VALUES IN HERE ARE TOKENS, NOT FOREST HEX. The picker's own copy promises "the
    accent on buttons, links and the chart", and every one of these used to hard-code var(--text): the
    active chart pill, .settings-save, the chart bars, the weekly totals and .text-button. Each was
-   restated per accent in 30-accent-palettes.css for SOME themes and missed in others - plain light
+   restated per accent in the old 30-accent-palettes.css for SOME themes and missed in others - plain light
    for the pill and .settings-save, and today's bar in every dark accent, where a :last-child rule in
    12-theme-audit.css out-specified the accent. var(--green) carries all twenty accent x theme
    combinations from lib/prefs.js, so there is one value to get right instead of twenty. The two bar

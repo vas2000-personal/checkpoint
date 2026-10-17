@@ -1,26 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {DEFAULTS,SCALES,ACCENTS,MOTION,CLOCKS,MEASURES,STAMPED,STORAGE_KEY,normalize,serialize,attrs,read,write,WIDGET_PREFIX,RETIRED_WIDGETS,LIVE_WIDGETS,CLEANUP_KEY,CLEANUP_VERSION,cleanupWidgetKeys} from '../lib/prefs.js';
+import {DEFAULTS,SCALES,THEMES,MOTION,CLOCKS,MEASURES,STAMPED,STORAGE_KEY,normalize,serialize,attrs,read,write,WIDGET_PREFIX,RETIRED_WIDGETS,LIVE_WIDGETS,CLEANUP_KEY,CLEANUP_VERSION,cleanupWidgetKeys} from '../lib/prefs.js';
 import {TABS,isTab} from '../lib/tabs.js';
 
 // Every stored shape that has ever been in a visitor's localStorage, plus the ones an attacker or a
 // half-finished write could leave. 'null' is the one that used to take the boot script down.
 const HOSTILE=[null,undefined,'','{}','null','"null"','0','false','[]','[1,2]','"not json at all','{"dark":1}',
- '{"dark":true}','{"scale":"huge"}','{"accent":"#ff0000"}','{"accent":"rebeccapurple"}','{"reduceMotion":"maybe"}',
+ '{"dark":true}','{"scale":"huge"}','{"theme":"#ff0000"}','{"accent":"rebeccapurple"}','{"reduceMotion":"maybe"}',
  '{"clock":24}','{"defaultTab":"nope"}','{"chartMeasure":"cards"}','{"__proto__":{"dark":true}}',
- {dark:'true'},{scale:null},{accent:0},[],42,true,()=>{}];
+ {dark:'true'},{scale:null},{theme:0},{accent:0},[],42,true,()=>{}];
 
 test('the defaults are the shipped look and every key has a known domain',()=>{
- assert.deepEqual(Object.keys(DEFAULTS).sort(),['accent','chartMeasure','clock','compactFeed','contrast','dark','defaultTab','focus','reduceMotion','scale'].sort());
- assert.deepEqual(DEFAULTS,{dark:false,contrast:false,focus:false,scale:'normal',accent:'forest',reduceMotion:'system',compactFeed:false,clock:'12',defaultTab:'today',chartMeasure:'minutes'});
+ assert.deepEqual(Object.keys(DEFAULTS).sort(),['theme','chartMeasure','clock','compactFeed','contrast','dark','defaultTab','focus','reduceMotion','scale'].sort());
+ assert.deepEqual(DEFAULTS,{dark:false,contrast:false,focus:false,scale:'normal',theme:'forest',reduceMotion:'system',compactFeed:false,clock:'12',defaultTab:'today',chartMeasure:'minutes'});
  assert.deepEqual(normalize(null),DEFAULTS,'an empty device must read exactly the defaults');
  // reduceMotion must stay tri-state: a boolean would override an OS that already asks for less motion.
  assert.deepEqual(MOTION,['system','on','off']);
  assert.equal(DEFAULTS.reduceMotion,'system','the default must defer to prefers-reduced-motion');
- assert.equal(ACCENTS[0],'forest','the first accent is the color the stylesheet already ships');
- assert.ok(ACCENTS.length>1&&ACCENTS.length<=8,'a curated set, not a free hue: each one is contrast-checked per theme');
- for(const list of [SCALES,ACCENTS,MOTION,CLOCKS,MEASURES]){
+ assert.equal(THEMES[0],'forest','the first theme is the board the stylesheet already ships');
+ assert.ok(THEMES.length>1&&THEMES.length<=8,'a curated set, not a free hue: each one is contrast-checked by scripts/themes.mjs');
+ for(const list of [SCALES,THEMES,MOTION,CLOCKS,MEASURES]){
   assert.equal(new Set(list).size,list.length,'a duplicated slug would make two settings collide');
   for(const slug of list)assert.match(slug,/^[a-z0-9]+$/,'slugs are data-attribute values: '+slug);
  }
@@ -34,7 +34,7 @@ test('normalize returns a complete known-good object for every junk shape',()=>{
   for(const key of Object.keys(DEFAULTS))
    assert.equal(typeof out[key],typeof DEFAULTS[key],'stored '+JSON.stringify(raw)+' changed the type of '+key);
   assert.equal(SCALES.includes(out.scale),true);
-  assert.equal(ACCENTS.includes(out.accent),true,'stored '+JSON.stringify(raw)+' produced accent '+out.accent);
+  assert.equal(THEMES.includes(out.theme),true,'stored '+JSON.stringify(raw)+' produced theme '+out.theme);
   assert.equal(MOTION.includes(out.reduceMotion),true);
   assert.equal(CLOCKS.includes(out.clock),true);
   assert.equal(MEASURES.includes(out.chartMeasure),true);
@@ -48,12 +48,15 @@ test('normalize returns a complete known-good object for every junk shape',()=>{
  assert.equal(normalize('{"compactFeed":1}').compactFeed,false);
  assert.equal(normalize({dark:true,contrast:true,focus:true,compactFeed:true}).dark,true);
  // An unconstrained color is exactly what the curated list exists to refuse.
- assert.equal(normalize('{"accent":"#ff0000"}').accent,'forest');
- assert.equal(normalize('{"accent":"ocean"}').accent,'ocean');
+ assert.equal(normalize('{"theme":"#ff0000"}').theme,'forest');
+ assert.equal(normalize('{"theme":"ocean"}').theme,'ocean');
+ // A device that stored the key by its old name keeps its color: same slugs, more surface.
+ assert.equal(normalize('{"accent":"ocean"}').theme,'ocean');
+ assert.equal(normalize('{"accent":"ocean","theme":"plum"}').theme,'plum','the new key wins when both are stored');
  assert.equal(normalize('{"__proto__":{"dark":true}}').dark,false,'a prototype payload must not become a setting');
  assert.equal(Object.getPrototypeOf(normalize('{"__proto__":{"dark":true}}')),Object.prototype);
  // Idempotent, and tolerant of its own output: the settings UI normalizes on every keystroke.
- const once=normalize({dark:true,scale:'large',accent:'plum',clock:'24'});
+ const once=normalize({dark:true,scale:'large',theme:'plum',clock:'24'});
  assert.deepEqual(normalize(once),once);
  assert.deepEqual(normalize(serialize(once)),once);
 });
@@ -71,7 +74,7 @@ test('an older stored object keeps its settings and gains the new ones',()=>{
 });
 
 test('serialize round-trips and read/write survive a hostile storage',()=>{
- const value=normalize({dark:true,scale:'large',accent:'clay',reduceMotion:'off',compactFeed:true,clock:'24',defaultTab:'study',chartMeasure:'questions'});
+ const value=normalize({dark:true,scale:'large',theme:'clay',reduceMotion:'off',compactFeed:true,clock:'24',defaultTab:'study',chartMeasure:'questions'});
  assert.deepEqual(JSON.parse(serialize(value)),value);
  assert.deepEqual(normalize(serialize(value)),value);
  const store=new Map();
@@ -139,21 +142,23 @@ test('the boot script and lib/prefs.js agree on every stored shape',()=>{
   assert.ok(observed,'stored '+JSON.stringify(stored)+' never registered the MutationObserver');
  }
  // The attributes the stylesheet selects on, spelled as they appear in the HTML.
- assert.deepEqual({...boot('{"dark":true,"scale":"large","accent":"plum","reduceMotion":"on"}').dataset},
-  {dark:'true',contrast:'false',focus:'false',scale:'large',accent:'plum',reduceMotion:'on'});
+ assert.deepEqual({...boot('{"dark":true,"scale":"large","theme":"plum","reduceMotion":"on"}').dataset},
+  {dark:'true',contrast:'false',focus:'false',scale:'large',theme:'plum',reduceMotion:'on'});
  assert.deepEqual({...boot('null').dataset},attrs(null),'a stored literal null must fall back to defaults, not abort the script');
- // Accent and motion must survive a missing meta tag, exactly as dark/scale already do.
- const headless=boot('{"accent":"ocean","reduceMotion":"off"}',{meta:false});
- assert.equal(headless.dataset.accent,'ocean');
+ // The theme and motion must survive a missing meta tag, exactly as dark/scale already do.
+ const headless=boot('{"theme":"ocean","reduceMotion":"off"}',{meta:false});
+ assert.equal(headless.dataset.theme,'ocean');
  assert.equal(headless.dataset.reduceMotion,'off');
  assert.ok(headless.observed);
  // Every slug the module accepts must be a slug the script accepts, or the first paint differs.
- for(const accent of ACCENTS)assert.equal(boot(JSON.stringify({accent})).dataset.accent,accent,'the script dropped accent '+accent);
+ for(const theme of THEMES)assert.equal(boot(JSON.stringify({theme})).dataset.theme,theme,'the script dropped theme '+theme);
  for(const value of MOTION)assert.equal(boot(JSON.stringify({reduceMotion:value})).dataset.reduceMotion,value);
  for(const scale of SCALES)assert.equal(boot(JSON.stringify({scale})).dataset.scale,scale);
- // theme-color still tracks dark/contrast only, so an accent change cannot repaint the browser chrome.
+ // theme-color reads the live --bg so it follows the theme, and falls back to the shipped forest pair
+ // when there is no CSSOM to read -- which is this harness, and is also the very first paint.
  assert.equal(boot('{"dark":true}').content,'#14221b');
- assert.equal(boot('{"accent":"clay"}').content,'#f6f5ef');
+ assert.equal(boot('{"theme":"clay"}').content,'#f6f5ef');
+ assert.deepEqual(boot('{}').observed.options,{attributeFilter:['data-dark','data-contrast','data-theme']},'the chrome color must repaint when the THEME changes too');
 });
 
 // ---------------------------------------------------------------------------------------------
