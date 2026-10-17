@@ -223,5 +223,11 @@ test('the landing page is shown only at a bare / with no session, and every link
  assert.doesNotMatch(landing,/href="\/"/,'a bare / href on the landing page is a link to itself');
  // One slot table for the landing and both bottom navs, so a destination keeps one name everywhere.
  assert.match(landing,/from '\.\/tabs\/slugs\.js'/,'the landing must read SLOTS, not retype the labels');
+ // Sign in is a LINK to the board, because the dialog is the board's. ?tab= is what carries it past
+ // the gate above; without it the button would land back on the landing page it was pressed from.
+ assert.match(landing,/href="\/\?tab=today&amp;signin"/,'the sign in link must name a tab and ask for the dialog');
+ const board=readFileSync(new URL('../components/dashboard.jsx',import.meta.url),'utf8');
+ assert.match(board,/searchParams\.has\('signin'\)/,'the board must answer ?signin, or the landing button opens nothing');
+ assert.match(board,/searchParams\.delete\('signin'\)/,'?signin must be stripped, or a reload reopens the dialog forever');
  for(const [,label] of SLOTS)assert.ok(!new RegExp('>'+label+'<').test(landing),'the landing hard-codes the label "'+label+'" instead of mapping SLOTS');
 });

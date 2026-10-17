@@ -54,7 +54,7 @@ const world=(overrides={})=>({
   {token_hash:THIRD_HASH,username:'gir',expires_at:'2099-01-03T00:00:00Z'},
   {token_hash:MUM_HASH,username:'mum',expires_at:'2099-01-04T00:00:00Z'}
  ],
- checkpoint_api_keys:[{username:'gir',created_at:'2026-01-02T03:04:05+00:00'}],
+ checkpoint_api_keys:[{username:'gir',created_at:'2026-01-02T03:04:05+00:00',token_hash:'a1b2c3d4'+'0'.repeat(56)}],
  checkpoint_breaks:[{username:'gir',start_day:today,until_day:today},{username:'mum',start_day:'2020-01-01',until_day:'2020-01-02'}],
  checkpoint_study_days:[{username:'gir',post_day:today,message:'Steady day.',study:{minutes:90,sessions:2,questions:40,correct:36,cards_reviewed:12,target_minutes:60,target_hit:true},source_updated_at:'2026-10-16T01:00:00+00:00',received_at:new Date().toISOString()}],
  checkpoint_awake:[{username:'gir',post_day:today,awake_at:'2026-10-16T07:12:00+00:00',last_active_at:'2026-10-16T23:40:00+00:00',still_up:true,received_at:new Date().toISOString()}],
@@ -86,7 +86,7 @@ test('GET /api/settings returns the owner-only shape, including the received_at 
  try{
   const own=await (await readSettings(getRequest('/api/settings'))).json();
   assert.deepEqual(Object.keys(own).sort(),['activeBreak','devices','display_name','family_note','missLog','share_awake','time_zone','username']);
-  assert.deepEqual(Object.keys(own.missLog).sort(),['connected','hasKey','keyCreatedAt','lastSyncAt']);
+  assert.deepEqual(Object.keys(own.missLog).sort(),['connected','hasKey','keyCreatedAt','keys','lastSyncAt']);
   assert.equal(own.time_zone,zone);
   assert.equal(own.share_awake,true);
   assert.equal(own.devices,3,'three of the four session rows are @gir’s');
@@ -94,6 +94,13 @@ test('GET /api/settings returns the owner-only shape, including the received_at 
   assert.equal(own.missLog.keyCreatedAt,'2026-01-02T03:04:05+00:00');
   assert.equal(own.missLog.connected,true);
   assert.ok(own.missLog.lastSyncAt,'the owner sees his own last sync time');
+  // The id is a PREFIX of the sha256 and never the key: eight hex characters name one of at most
+  // five rows so the owner can revoke a specific one, and invert to nothing.
+  assert.deepEqual(own.missLog.keys.map(k=>Object.keys(k).sort()),[['createdAt','id']]);
+  for(const key of own.missLog.keys)assert.match(key.id,/^[0-9a-f]{8}$/,'a key id must be a short hex handle, not a token');
+  const body=JSON.stringify(own);
+  assert.ok(!/cp_/.test(body),'a sync key itself must never reach the settings payload');
+  assert.ok(!/[0-9a-f]{32}/.test(body),'a full token hash must never reach the settings payload');
   // The key never leaves the database in any shape, not even as the hash that is stored.
   const serialized=JSON.stringify(own);
   assert.ok(!serialized.includes('token_hash')&&!serialized.includes('cp_'),'no key material in the settings payload');

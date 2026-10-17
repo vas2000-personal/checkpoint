@@ -24,7 +24,15 @@ export default function Landing(){
  return <><IconLibrary/>
   <header className="site-header"><div className="header-inner">
    <a className="brand" href="/?tab=today" aria-label="Checkpoint home"><span className="brand-icon"><svg><use href="#icon-flag"/></svg></span>checkpoint<span className="brand-dot">.</span></a>
-   <span className="header-note">One day at a time.</span>
+   <div className="header-actions">
+    <span className="header-note">One day at a time.</span>
+    {/* The dialog this opens lives on the board (components/entry-dialog.jsx), which is why this is a
+        LINK and not a button: a server component has no dialog to open, and a second copy of
+        enrollment, passphrases and recovery codes on the door is the one thing worse than a redirect.
+        components/dashboard.jsx strips ?signin on arrival, so the URL left behind is an ordinary
+        board link. ?tab=today is what carries it past the landing gate in app/page.jsx. */}
+    <a className="header-action" href="/?tab=today&amp;signin"><svg><use href="#icon-edit"/></svg><span>Sign in</span></a>
+   </div>
   </div></header>
   <main className="landing">
    {/* The board's h1 is screen-reader-only because its hero is a collapsed widget. Here the hero IS

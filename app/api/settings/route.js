@@ -35,10 +35,10 @@ export async function GET(request){
   // parameter and must never grow one. A ?user= is ignored, so asking for somebody else's settings
   // answers with your own rather than theirs.
   const username=user.username,now=new Date();
-  const [profile,devices,key,breaks,connected,study,awake]=await Promise.all([
+  const [profile,devices,keys,breaks,connected,study,awake]=await Promise.all([
    profileFor(username),
    rowsOf('checkpoint_sessions?'+new URLSearchParams({select:'expires_at',username:'eq.'+username,expires_at:'gt.'+now.toISOString(),limit:String(DEVICE_LIMIT)})),
-   firstOf('checkpoint_api_keys?'+new URLSearchParams({select:'created_at',username:'eq.'+username,order:'created_at.desc',limit:'1'})),
+   rowsOf('checkpoint_api_keys?'+new URLSearchParams({select:'created_at,token_hash',username:'eq.'+username,order:'created_at.desc',limit:'10'})),
    rowsOf('checkpoint_breaks?'+new URLSearchParams({select:'start_day,until_day',username:'eq.'+username,order:'start_day.asc'})),
    // Settings is a page the owner opened, not the family's homepage, so a failure here is logged and
    // degrades to "not connected" rather than refusing to show him his own time zone.
@@ -60,9 +60,10 @@ export async function GET(request){
    share_awake:profile?.share_awake!==false,
    activeBreak:breaks.filter(b=>b.start_day<=today&&b.until_day>=today).sort((a,b)=>b.until_day.localeCompare(a.until_day))[0]||null,
    devices:devices.length,
-   // The key itself is never read, let alone returned: only its sha256 is stored, and even that
-   // stays out of the select. Whether one exists and when it was made is all Settings needs.
-   missLog:{hasKey:!!key,keyCreatedAt:key?.created_at??null,connected,lastSyncAt:synced.at(-1)??null}
+   // THE KEY ITSELF IS NEVER RETURNED, and cannot be: only its sha256 was ever stored. The first
+   // eight hex characters go out as an id so the owner can point at one key among several and say
+   // "revoke that one" — not invertible, not replayable, and scoped to his own rows either way.
+   missLog:{hasKey:keys.length>0,keyCreatedAt:keys[0]?.created_at??null,keys:keys.filter(k=>/^[0-9a-f]{64}$/.test(k.token_hash||'')).map(k=>({id:k.token_hash.slice(0,8),createdAt:k.created_at})),connected,lastSyncAt:synced.at(-1)??null}
   });
  }catch(error){return fail(error)}
 }
