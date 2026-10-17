@@ -1,0 +1,22 @@
+/* The gap between the tab strip and whatever a panel opens with. 37-board-rhythm.css gave each panel
+   one internal gap and reset the per-block margins that used to fake it -- .study-status-bar's
+   margin-top:1.5rem, .feed-heading's 0.4375rem, the stat row's -- but those margins were ALSO the
+   only thing holding the first block off the strip, and main's padding is `0 2rem 1.875rem`. So every
+   tab now opens flush against the tabs: Today's totals card, Journal's heading, Progress's stat row.
+   The space belongs on the container, not back on the first child of each panel -- a margin on the
+   first child is the thing that drifts per tab, and it would collapse differently inside a flex panel
+   than it did in flow. .board-tabs+main keeps it off /settings, which has no strip above it and its
+   own .settings-head margin. 1.5rem is the board's step, so the strip-to-content gap reads as the
+   same rhythm as the gaps inside the panel. */
+.board-tabs+main{padding-top:1.5rem}
+/* Same reason, one level in: the strip and the board-level error sit BETWEEN the tabs and the panel,
+   so when either renders it is the thing the padding above spaces -- and the panel below then needs
+   the same step, which neither carried (the strip was margin:1.25rem 0 0, bottom zero). */
+.board-strip{margin-top:0;margin-bottom:1.5rem}
+.board-tabs+main>#retry{margin-bottom:1.5rem}
+@media(max-width:760px){
+ /* Below 760 the strip is under the HEADER -- the tabs are the fixed bottom nav -- and the narrow
+    board's step is 1.25rem (main's side gutter, the old .intro margin-top). */
+ .board-tabs+main{padding-top:1.25rem}
+ .board-strip{margin-bottom:1.25rem}
+}
