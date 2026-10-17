@@ -120,6 +120,91 @@ function surface(chain,theme) {
  return hex('var(--bg)',theme,'page background');
 }
 
+// ---------------------------------------------------------------------------
+// Root font size. Never assume 1rem is 16px: the display scale moves the root.
+//
+// WHAT THE 16px RULE BELOW IS AND IS NOT. It is input/textarea/select ONLY, and deliberately so: its
+// purpose is iOS Safari, which zooms the page when a control under 16px takes focus and never zooms
+// back out. It is not a legibility floor for the sheet. At the Small scale a control LABEL is 11-15px
+// and a 2.75rem target measures 38.5px, which is inherent to writing sizes in rem -- the Small scale
+// moves the root, so it moves every rem with it -- and applies equally to controls that predate this
+// phase. Every real form field passes at all three scales. Shrinking the scale is the point of the
+// scale; do not read this test as a claim that nothing on the page is under 16px.
+// ---------------------------------------------------------------------------
+const SCALES={small:at('','html[data-scale=small]','font-size'),normal:at('','html','font-size'),large:at('','html[data-scale=large]','font-size')};
+const VIEWPORTS=[320,390,768];
+function clampPx(value,vw) {
+ const m=/^clamp\(\s*([\d.]+)px\s*,\s*([\d.]+)vw\s*,\s*([\d.]+)px\s*\)$/.exec(value);
+ assert.ok(m,'unsupported root font-size '+value);
+ return Math.min(Math.max(+m[1],+m[2]*vw/100),+m[3]);
+}
+// Resolve a font-size value to px for a given root size: rem, px and max()/min() of both.
+function sizePx(value,root) {
+ const v=value.trim();
+ const fn=/^(max|min)\((.*)\)$/.exec(v);
+ if(fn)return Math[fn[1]](...splitTop(fn[2],',').map(part=>sizePx(part,root)));
+ // clamp(floor,preferred,ceiling): the floor is the smallest it can ever render, which is the only
+ // bound that matters when the question is "is this still large text at the Small scale".
+ const cl=/^clamp\((.*)\)$/.exec(v);
+ if(cl)return sizePx(splitTop(cl[1],',')[0],root);
+ if(v.endsWith('rem'))return parseFloat(v)*root;
+ if(v.endsWith('px'))return parseFloat(v);
+ if(parseFloat(v)===0)return 0;
+ assert.fail('unsupported control font-size '+value);
+}
+const mediaApplies=(ctx,vw)=>ctx.split('&&').every(part=>{
+ const max=/max-width:\s*(\d+)px/.exec(part),min=/min-width:\s*(\d+)px/.exec(part);
+ return (!max||vw<=+max[1])&&(!min||vw>=+min[1]);
+});
+const LARGE_PX=24,LARGE_BOLD_PX=18.66;
+// the base rules use the font shorthand, so pull the size out of whichever form each context used.
+const fontSize=(ctx,sel)=>at(ctx,sel,'font-size')??/(^|[\s/])([\d.]+rem)([\s/]|$)/.exec(at(ctx,sel,'font')||'')?.[2];
+// Weight, from font-weight or from the leading 3-digit number of a `font` shorthand.
+const fontWeight=(ctx,sel)=>at(ctx,sel,'font-weight')??/(^|[\s])([1-9]00)(?=[\s])/.exec(at(ctx,sel,'font')||'')?.[2];
+// ---------------------------------------------------------------------------
+// THE AAA BAR, SC 1.4.6: 7:1 for normal text, 4.5:1 only for LARGE text, where
+// large is >=24px, or >=18.66px at weight >=700. Both thresholds are CSS pixels,
+// so the bar is not a property of a selector -- it is a property of a selector AT
+// A DISPLAY SCALE. The Small scale pins the root at 14px, so a 1.25rem/800 wordmark
+// is 20px (large, 4.5:1) at Normal and 17.5px (NOT large, 7:1) at Small, and the
+// bar that has to hold is the strictest of the three.
+//
+// Resolution is conservative on purpose, in both directions that matter:
+//  - size: the SMALLEST size any context states for the selector, measured at the
+//    Small scale and at 320px (the narrowest viewport, so the root clamp is at its
+//    floor). A selector that states no size of its own inherits the 1rem body and
+//    is treated as normal text -- which is the right answer, never a loophole.
+//  - weight: the heaviest weight stated for the selector, defaulting to the 400 the
+//    body carries. Heavier only ever makes `large` easier to reach, so pairing it
+//    with the smallest size is the combination that could wrongly claim 4.5:1; if a
+//    selector passes under THAT pairing it passes under every real one.
+// ---------------------------------------------------------------------------
+const LARGE_BOLD_WEIGHT=700;
+// Every value any context in the sheet states for one of `props` on this exact selector. `font` is a
+// shorthand, so the size and the weight have to be picked back out of it.
+const stated=(sel,prop)=>Object.keys(map).filter(k=>{const [,t,p]=k.split('||');return t===sel&&(p===prop||p==='font')})
+ .map(k=>{const [,,p]=k.split('||');if(p!=='font')return map[k];
+  return prop==='font-size'?/(^|[\s/])((?:clamp|max|min)\([^)]*\)|[\d.]+(?:rem|px))([\s/]|$)/.exec(map[k])?.[2]
+                          :/(^|[\s])([1-9]00)(?=[\s])/.exec(map[k])?.[2]}).filter(Boolean);
+// Font size and weight INHERIT, so a probe that states neither takes them from the nearest ancestor
+// selector that does: `h1 em` is 40-64px because `h1` is, and calling it 14px body text would have
+// demanded 7:1 of a hero heading that the large-text exemption plainly covers.
+const inherited=(sel,prop)=>{
+ for(let probe=sel;probe;probe=probe.replace(/[\s>]*[^\s>]+$/,'').trim()){
+  const own=stated(probe,prop);
+  if(own.length)return own;
+ }
+ return [];
+};
+function aaaBar(sel) {
+ // Small scale at 320px: the root clamp is at its floor, so this is the smallest any rem can render.
+ const root=clampPx(SCALES.small,320);
+ const sizes=inherited(sel,'font-size').map(v=>{try{return sizePx(v,root)}catch{return null}}).filter(v=>v!==null);
+ const px=sizes.length?Math.min(...sizes):sizePx(at('','body','font-size')??'1rem',root);
+ const weight=Math.max(400,...inherited(sel,'font-weight').map(Number).filter(Number.isFinite));
+ const large=px>=LARGE_PX||(weight>=LARGE_BOLD_WEIGHT&&px>=LARGE_BOLD_PX);
+ return {need:large?4.5:7,px,weight,large};
+}
 // Every muted class the parents read, paired with the stack of surfaces it can sit on.
 const TEXT=[
  ['footer',['body']],['footer p',['body']],['.post-day-label',['body']],['.today-tag',['body']],
@@ -150,15 +235,16 @@ const TEXT=[
  ['.text-button',['.card','body']],
  ['.settings-meta dt',['.settings-meta>div','.card','body']],['.settings-meta dd',['.settings-meta>div','.card','body']],
 ];
-test('muted body text clears WCAG AA 4.5:1 in every theme the board can render in',()=>{
+test('muted body text clears WCAG AAA 1.4.6 in every theme the board can render in',()=>{
  const failing=[];
  for(const theme of THEMES)for(const [sel,chain] of TEXT){
   const raw=winner(sel,'color',theme);
   assert.ok(raw,sel+' has no resolved color in '+theme.name);
+  const {need,px,large}=aaaBar(sel);
   const fg=hex(raw,theme,sel),bg=surface(chain,theme),r=ratio(fg,bg);
-  if(r<4.5)failing.push(theme.name+': '+sel+' '+fg+' on '+bg+' = '+r.toFixed(2)+':1');
+  if(r<need)failing.push(theme.name+': '+sel+' is '+px.toFixed(1)+'px at the Small scale ('+(large?'large':'normal')+', needs '+need+':1) but '+fg+' on '+bg+' = '+r.toFixed(2)+':1');
  }
- assert.deepEqual(failing,[],'these need 4.5:1 against their own background');
+ assert.deepEqual(failing,[],'these need 7:1 against their own background, or 4.5:1 if they are large at EVERY scale');
 });
 
 // ---------------------------------------------------------------------------
@@ -188,8 +274,9 @@ test('a filled control keeps its label readable on its own fill in every theme',
  for(const theme of THEMES)for(const [sel,chain] of PRESSED){
   const raw=winner(sel,'color',theme);
   assert.ok(raw,sel+' has no resolved color in '+theme.name);
+  const {need,px,large}=aaaBar(sel);
   const fg=hex(raw,theme,sel),bg=surface(chain,theme),r=ratio(fg,bg);
-  if(r<4.5)failing.push(theme.name+': '+sel+' '+fg+' on its own '+bg+' = '+r.toFixed(2)+':1');
+  if(r<need)failing.push(theme.name+': '+sel+' is '+px.toFixed(1)+'px at the Small scale ('+(large?'large':'normal')+', needs '+need+':1) but '+fg+' on its own '+bg+' = '+r.toFixed(2)+':1');
  }
  assert.deepEqual(failing,[],'a themed text list recolored these labels without restating their fill');
 });
@@ -293,37 +380,6 @@ test('no icon rule hard-codes a color the themes then cannot reach',()=>{
  }
 });
 
-// ---------------------------------------------------------------------------
-// Root font size. Never assume 1rem is 16px: the display scale moves the root.
-//
-// WHAT THE 16px RULE BELOW IS AND IS NOT. It is input/textarea/select ONLY, and deliberately so: its
-// purpose is iOS Safari, which zooms the page when a control under 16px takes focus and never zooms
-// back out. It is not a legibility floor for the sheet. At the Small scale a control LABEL is 11-15px
-// and a 2.75rem target measures 38.5px, which is inherent to writing sizes in rem -- the Small scale
-// moves the root, so it moves every rem with it -- and applies equally to controls that predate this
-// phase. Every real form field passes at all three scales. Shrinking the scale is the point of the
-// scale; do not read this test as a claim that nothing on the page is under 16px.
-// ---------------------------------------------------------------------------
-const SCALES={small:at('','html[data-scale=small]','font-size'),normal:at('','html','font-size'),large:at('','html[data-scale=large]','font-size')};
-const VIEWPORTS=[320,390,768];
-function clampPx(value,vw) {
- const m=/^clamp\(\s*([\d.]+)px\s*,\s*([\d.]+)vw\s*,\s*([\d.]+)px\s*\)$/.exec(value);
- assert.ok(m,'unsupported root font-size '+value);
- return Math.min(Math.max(+m[1],+m[2]*vw/100),+m[3]);
-}
-// Resolve a font-size value to px for a given root size: rem, px and max()/min() of both.
-function sizePx(value,root) {
- const v=value.trim();
- const fn=/^(max|min)\((.*)\)$/.exec(v);
- if(fn)return Math[fn[1]](...splitTop(fn[2],',').map(part=>sizePx(part,root)));
- if(v.endsWith('rem'))return parseFloat(v)*root;
- if(v.endsWith('px'))return parseFloat(v);
- assert.fail('unsupported control font-size '+value);
-}
-const mediaApplies=(ctx,vw)=>ctx.split('&&').every(part=>{
- const max=/max-width:\s*(\d+)px/.exec(part),min=/min-width:\s*(\d+)px/.exec(part);
- return (!max||vw<=+max[1])&&(!min||vw>=+min[1]);
-});
 const CONTROL=/(^|[\s>,])(input|textarea|select)$/;
 test('every text control stays at 16px at every display scale and phone width',()=>{
  const found=[],failing=[];
@@ -350,15 +406,12 @@ test('the Small display scale actually shrinks text on a phone',()=>{
 });
 
 // ---------------------------------------------------------------------------
-// The WCAG large-text exemption (3:1 instead of 4.5:1) applies at >=24px, or at
+// The WCAG large-text exemption (AAA: 4.5:1 instead of 7:1) applies at >=24px, or at
 // >=18.66px when the weight is >=700. Both thresholds are CSS pixels, so a rem
 // size that qualifies at the Normal scale can stop qualifying at Small, where
 // the root is 14px. Every selector in the sheet that could lean on the exemption
 // is registered here; probing one of them is how .footer-brand slipped through.
 // ---------------------------------------------------------------------------
-const LARGE_PX=24,LARGE_BOLD_PX=18.66;
-// the base rules use the font shorthand, so pull the size out of whichever form each context used.
-const fontSize=(ctx,sel)=>at(ctx,sel,'font-size')??/(^|[\s/])([\d.]+rem)([\s/]|$)/.exec(at(ctx,sel,'font')||'')?.[2];
 // [probe, surface chain, selector carrying the size, contexts that restate it, weight]
 const LARGE=[
  ['.feed-heading h2 span',['body'],'.feed-heading h2',['','@media(max-width:1060px)','@media(max-width:760px)'],500],
@@ -373,7 +426,7 @@ test('no text leans on the large-text exemption at a scale where it is no longer
   // The Small scale pins the root at 14px, so it is always the worst case for the exemption.
   const smallest=Math.min(...sizes.map(v=>sizePx(v,clampPx(SCALES.small,320))));
   const large=smallest>=LARGE_PX||(weight>=700&&smallest>=LARGE_BOLD_PX);
-  const need=large?3:4.5;
+  const need=large?4.5:7;
   for(const theme of THEMES){
    const fg=hex(winner(probe,'color',theme),theme,probe),bg=surface(chain,theme),r=ratio(fg,bg);
    if(r<need)failing.push(theme.name+': '+probe+' is '+smallest.toFixed(1)+'px/'+weight+' at the Small scale ('+(large?'large':'not large')+', needs '+need+':1) but '+fg+' on '+bg+' = '+r.toFixed(2)+':1');
@@ -383,7 +436,7 @@ test('no text leans on the large-text exemption at a scale where it is no longer
 });
 test('the large-text registry still covers every selector that could claim the exemption',()=>{
  // Any selector with its own color and a declared size big enough to qualify has to be audited
- // by name, either as plain 4.5:1 text or as a registered exemption.
+ // by name, either as plain 7:1 text or as a registered exemption.
  // .star-two is aria-hidden decorative art in the hero, so it carries neither text nor meaning.
  const audited=new Set([...TEXT.map(([sel])=>sel),...LARGE.map(([sel])=>sel),'.brand','.star-two']);
  const missing=[];
@@ -493,10 +546,20 @@ test('high contrast covers every text class dark mode covers',()=>{
 });
 
 // ---------------------------------------------------------------------------
-// SC 2.5.8 (Target Size Minimum, 24x24) is AA and is NOT conditioned on pointer
-// type, so a fine pointer gets the floor too — pointer:coarse also fails to match
-// a Windows touch laptop whose mouse is primary. 44px stays a coarse-only comfort
-// target. The floor is CSS pixels: a rem floor shrinks with the Small scale.
+// SC 2.5.5 (Target Size Enhanced, 44x44) is AAA and replaces the 24x24 of SC 2.5.8
+// that this section used to enforce. Two things change, and both mattered here:
+//   - 44px is now the ONLY bar. There is no "comfort target" tier left to park on a
+//     coarse pointer, so nothing in the sheet may state a floor inside
+//     @media(pointer:coarse) -- that query also fails to match a Windows touch
+//     laptop whose mouse is primary, so it was never the right gate anyway.
+//   - The floor is CSS PIXELS. 2.75rem is 44px only while the root is 16px; at the
+//     Small display scale the root is 14px and 2.75rem measures 38.5px. That is why
+//     every floor is written max(2.75rem,44px), and why this test resolves the
+//     cascade at all three scales rather than trusting the rem.
+// 2.5.5 grants exactly two exceptions that this board can claim, both enumerated in
+// TARGET_EXCEPTIONS below with the reason each one qualifies. An inline link inside
+// a sentence is the SC's other exception; no control in this sheet is one, so there
+// is no entry for it.
 // ---------------------------------------------------------------------------
 // Every interactive control in the sheet, with the box that establishes its height.
 const CONTROLS=[
@@ -515,12 +578,22 @@ const CONTROLS=[
  // The accent radio used to set min-height:0/min-width:0, opting out of the floor on purpose; it is
  // pinned to a 24px square now, the way .pass-check input[type=checkbox] already was.
  ['.accent-option input',''],['.copy-code',''],
+ // The dialog's tick box, and the row that carries its target; neither was in this registry.
+ ['.pass-check input[type=checkbox]',''],['#entry-dialog .pass-check',''],
 ];
-// Controls DESIGNED at the 44px comfort target rather than given it only on a coarse pointer. They
-// are nav slots and pills, not inline text in a line box, so an unconditional 2.75rem costs nothing
-// on a desktop and is what keeps them honest at the Small scale.
-const ALWAYS_44=['.board-tab','.header-settings','.settings-bottom-nav a','.settings-nav a','.settings-choice',
- '.settings-switch','.accent-option','.settings-back','.settings-reveal>summary','.settings-save','.display-button'];
+// The only SC 2.5.5 exceptions on this board. Each entry is [reason, the selector whose box IS the
+// target instead], and the test below refuses an entry whose stand-in row does not itself clear 44px
+// at every scale -- an exception is only an exception while something else carries the target.
+const TARGET_EXCEPTIONS={
+ // 2.5.5 exempts a control whose size is determined by the user agent. These are native inputs: the
+ // radio keeps its arrow-key group semantics and the checkbox keeps its tick, and restyling either
+ // to 44px would mean replacing it with a div. Both are pinned to a 24px square rather than left to
+ // stretch, and in both cases the LABEL wraps the input, so the whole row activates it. Verified in
+ // a real browser rather than inferred: clicking the accent row 154px to the right of the radio, at
+ // the row's top edge, switches the accent, and so does the opposite corner of a different row.
+ '.accent-option input':['native radio, user-agent sized; the .accent-option label row is the target','.accent-option'],
+ '.pass-check input[type=checkbox]':['native checkbox, user-agent sized; the .pass-check label row is the target, and that label both wraps the input and names it with htmlFor','#entry-dialog .pass-check'],
+};
 // Height a control actually occupies with a fine pointer, at a given root size.
 const lineHeight=1.6,px=(v,root)=>v===undefined?undefined:sizePx(v,root);
 function controlHeight(sel,ctx,root) {
@@ -532,48 +605,67 @@ function controlHeight(sel,ctx,root) {
  const box=size?sizePx(size,root)*lineHeight+padY:0;
  return Math.max(floor,box);
 }
-test('every interactive control clears the 24px AA floor on a fine pointer, at every scale',()=>{
+test('every interactive control clears the 44px AAA target on a fine pointer, at every scale',()=>{
  const thin=[];
- for(const [sel,ctx] of CONTROLS)for(const [scale,root] of Object.entries(SCALES)){
-  const r=clampPx(root,390),h=controlHeight(sel,ctx,r);
-  // An invisible hit box behind the control counts, the way .close has always done it.
-  const after=px(at(ctx,sel+':after','height'),r)??px(at('',sel+':after','height'),r)??0;
-  const target=Math.max(h,after);
-  if(target<24)thin.push(scale+': '+sel+' is '+target.toFixed(1)+'px tall (SC 2.5.8 needs 24)');
+ for(const [sel,ctx] of CONTROLS){
+  if(TARGET_EXCEPTIONS[sel])continue;
+  for(const [scale,root] of Object.entries(SCALES)){
+   const r=clampPx(root,390),h=controlHeight(sel,ctx,r);
+   // An invisible hit box behind the control counts, the way .close has always done it.
+   const after=px(at(ctx,sel+':after','height'),r)??px(at('',sel+':after','height'),r)??0;
+   const target=Math.max(h,after);
+   if(target<44)thin.push(scale+': '+sel+' is '+target.toFixed(1)+'px tall (SC 2.5.5 needs 44)');
+  }
  }
- assert.deepEqual(thin,[],'these are under 24 CSS px without a touch pointer');
+ assert.deepEqual(thin,[],'these are under 44 CSS px, which SC 2.5.5 does not condition on pointer type');
 });
-test('the controls designed at 44px state it unconditionally, including both bottom navs',()=>{
- for(const sel of ALWAYS_44){
-  const floor=at('',sel,'min-height');
-  assert.match(floor||'',/rem$/,sel+' states no rem min-height in the base context: '+floor);
-  assert.ok(parseFloat(floor)>=2.75,sel+' is '+floor+', under the 2.75rem comfort target');
+test('every target-size exception is a real 2.5.5 exception, with a reason and a 44px row behind it',()=>{
+ const registered=new Set(CONTROLS.map(([sel])=>sel));
+ for(const [sel,[why,row]] of Object.entries(TARGET_EXCEPTIONS)){
+  assert.ok(registered.has(sel),sel+' is exempted but is not in CONTROLS, so nothing checks it at all');
+  assert.ok(why.length>40,sel+' needs the reason it qualifies written next to it, not just a listing');
+  // The stand-in row has to carry the target the control is excused from, at every scale.
+  for(const [scale,root] of Object.entries(SCALES)){
+   const h=controlHeight(row,'',clampPx(root,390));
+   assert.ok(h>=44,scale+': '+sel+' is excused because '+row+' is the target, but '+row+' is only '+h.toFixed(1)+'px');
+  }
  }
+});
+test('no control parks its target floor behind a coarse pointer, and the floors are in CSS px',()=>{
+ // SC 2.5.5 is unconditional, so a floor that exists only under @media(pointer:coarse) is not a
+ // floor. This is a whole-sheet assertion rather than a per-selector one: it catches a NEW rule
+ // dropped into a coarse block later, which a registry of today's selectors never would.
+ for(const m of sheet.matchAll(/@media\s*\(\s*pointer\s*:\s*coarse\s*\)\s*\{/g)){
+  const body=sheet.slice(m.index,matchBrace(sheet,m.index+m[0].length-1)+1);
+  assert.doesNotMatch(body,/min-(height|width)\s*:/,'a target floor is hiding behind pointer:coarse: '+body.slice(0,140));
+ }
+ // Every floor the sheet states for a control must still be 44px at the Small scale, where the root
+ // is 14px. max(2.75rem,44px) is the house form: 44 guaranteed, and still free to grow at Large.
+ const bare=[];
+ for(const [sel,ctx] of CONTROLS){
+  if(TARGET_EXCEPTIONS[sel])continue;
+  const floor=at(ctx,sel,'min-height')??at('',sel,'min-height');
+  if(floor===undefined)continue;
+  if(sizePx(floor,clampPx(SCALES.small,390))<44)bare.push(sel+' states '+floor+', under 44px at the Small scale');
+ }
+ assert.deepEqual(bare,[],'these state a rem floor that shrinks below 44px with the display scale');
+ // The two native tick boxes keep an absolute 24px square: that is their own size, not their target.
+ for(const sel of ['.accent-option input','.pass-check input[type=checkbox]'])
+  assert.equal(at('',sel,'height'),'24px',sel+' must stay a 24px square rather than stretch to fill its row');
  // Below 760px the board tab grows to the full 3.5rem slot the fixed bar is built around, and the
  // settings bar matches it: the two bars sit at the same screen position.
  assert.equal(at('@media(max-width:760px)','.board-tab','height'),'3.5rem');
  assert.equal(at('@media(max-width:760px)','.settings-bottom-nav a','height'),'3.5rem');
-});
-test('the 24px floor is in CSS pixels and the 44px comfort target stays coarse-only',()=>{
- // A rem floor would shrink to 21px at the Small scale, so the unconditional hit boxes use px.
- const floor=at('','#retry:after','height');
- assert.equal(floor,'24px','the unconditional floor must be absolute px, not rem: '+floor);
- assert.equal(at('','.home-screen-tip summary:after','height'),'24px');
- for(const sel of ['#retry','.home-screen-tip summary'])
-  assert.equal(at('',sel,'position'),'relative','the '+sel+' hit box needs a positioned box');
- // 44px is AAA comfort, not AA, so it stays where it was and still does not move desktop line boxes.
- for(const sel of ['#retry','.text-button','.home-screen-tip summary']){
-  assert.equal(at('@media(pointer:coarse)',sel,'min-height'),'2.75rem',sel+' misses the 44px target on touch');
-  assert.equal(at('',sel,'min-height'),undefined,sel+' grows the desktop line box; scope it to pointer:coarse');
- }
- // The close button's own 30px circle already clears 24px, so its 44px overhang — which has no
- // visible edge and sits in a space-between header — is a coarse-pointer concern only.
+ // .close draws a 30px circle on purpose; its target is the unconditional overhang behind it.
  assert.equal(at('','.close','width'),'1.875rem');
- assert.equal(at('','.close','position'),'relative');
- assert.equal(at('','.close:after','width'),undefined,'the 44px hit box must not overhang the 30px circle on desktop');
- assert.equal(at('@media(pointer:coarse)','.close:after','width'),'2.75rem');
- assert.equal(at('@media(pointer:coarse)','.close:after','height'),'2.75rem');
- assert.ok(sizePx(at('','.close','width'),clampPx(SCALES.small,390))>=24,'the circle alone has to carry the AA floor');
+ assert.equal(at('','.close:after','height'),'44px','the dismiss target must not be coarse-only any more');
+ assert.equal(at('','#retry:after','height'),'44px');
+ assert.equal(at('','.home-screen-tip summary:after','height'),'44px');
+ for(const sel of ['#retry','.home-screen-tip summary','.brand','.footer-brand','.close'])
+  assert.equal(at('',sel,'position'),'relative','the '+sel+' hit box needs a positioned box');
+ // The wordmark takes its target from a pseudo-element so the header and footer measures do not move.
+ for(const sel of ['.brand:after','.footer-brand:after'])
+  assert.equal(at('',sel,'height'),'44px',sel+' is how the wordmark reaches 44px without moving layout');
 });
 
 // Media queries add no specificity, so a later wide breakpoint silently eats a narrower one.
@@ -754,9 +846,9 @@ test('a settings panel alert is distinguishable from body copy wherever the them
    continue;
   }
   assert.notEqual(alert,body,theme.name+': the alert is the same color as the paragraph above it');
-  assert.ok(ratio(alert,surfaceColor)>=4.5,theme.name+': the alert is '+ratio(alert,surfaceColor).toFixed(2)+':1 on '+surfaceColor);
+  assert.ok(ratio(alert,surfaceColor)>=7,theme.name+': the alert is '+ratio(alert,surfaceColor).toFixed(2)+':1 on '+surfaceColor);
  }
  // The dialog's own error already carried a dark restatement; the panels are held to the same one.
- assert.equal(winner('#join-error','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0a98f');
- assert.equal(winner('.profile-settings p[role=alert]','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0a98f');
+ assert.equal(winner('#join-error','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0ad97');
+ assert.equal(winner('.profile-settings p[role=alert]','color',THEMES.find(t=>t.dark&&!t.contrast)),'#f0ad97');
 });

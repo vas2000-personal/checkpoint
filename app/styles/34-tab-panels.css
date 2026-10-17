@@ -1,11 +1,21 @@
 /* What the two-column .layout used to do, now that a tab is the layout. The feed column kept the
    posts at a readable measure by being one column of a grid; with one panel per screen that width has
-   to be stated, or a 1280px laptop prints 95-character lines. */
+   to be stated, or a 1280px laptop prints 95-character lines.
+   48rem is the board's reading measure: the Journal feed and the settings cards (46rem) already use
+   it, so the Today tab adopting it keeps all three in the same column rather than inventing a fourth.
+   IT APPLIES TO THE WHOLE PANEL, not just the feed. Narrowing .today-stack alone is what left the
+   posts inset 192px inside widgets that ran the full 1152px, so a post card and the card directly
+   below it did not share an edge -- a leftover from the aside that used to fill that space. */
 .tab-panel{min-width:0}
-#panel-today .today-stack,#panel-journal .feed-column{max-width:48rem;margin-inline:auto}
-#panel-today .today-stack{margin-top:1.5rem}
-/* The trail and the week were designed for a 20rem aside, so they pair up instead of stretching. */
-.progress-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.5rem;align-items:start;margin-bottom:1.5rem}
+#panel-today,#panel-journal .feed-column{max-width:48rem;margin-inline:auto}
+/* One gap owns the vertical rhythm of the tail; the per-block margins that used to fake it (and that
+   produced 24/14/20/0, including two cards that simply touched) are reset below. */
+#panel-today{display:flex;flex-direction:column;gap:1.5rem}
+#panel-today>.study-status-bar,#panel-today>.today-stack,#panel-today>.home-screen-tip{margin:0}
+#panel-today .compact-widget{margin-bottom:0}
+/* The trail and the week were designed for a 20rem aside. They pair up rather than stretching on a
+   phone, where they are one column anyway; side by side they stretch, or the row ends 168px ragged. */
+.progress-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.5rem;align-items:stretch;margin-bottom:1.5rem}
 @media(max-width:900px){.progress-grid{grid-template-columns:minmax(0,1fr)}}
 /* One strip under the tabs, on every tab: who the board is following, and who it fell back to when a
    ?user= named nobody — a parent on a stale link is told whose streak they are reading. */
@@ -20,5 +30,4 @@ html[data-focus=true] .hero-widget{display:none}
  /* Content must not sit under the fixed bar, and neither must the toast that confirms a saved post. */
  main{padding-bottom:calc(3.5rem + env(safe-area-inset-bottom) + 1.375rem)}
  #toast{bottom:calc(4.625rem + env(safe-area-inset-bottom))}
- #panel-today .today-stack{margin-top:1.25rem}
 }

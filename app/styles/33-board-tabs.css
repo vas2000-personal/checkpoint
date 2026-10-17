@@ -6,7 +6,7 @@
    the --paper rim list. */
 .board-tabs{background:var(--bg);border-bottom:0.0625rem solid var(--line)}
 .board-tabs-inner{max-width:76rem;margin:auto;display:flex;align-items:stretch;gap:0.25rem;padding-left:max(2rem,env(safe-area-inset-left));padding-right:max(2rem,env(safe-area-inset-right))}
-.board-tab{display:flex;align-items:center;justify-content:center;gap:0.5rem;min-height:2.75rem;padding:0.6875rem 1rem;font:500 1.0625rem/1.4 var(--display);letter-spacing:-0.01875rem;color:var(--text);border-bottom:0.125rem solid transparent;margin-bottom:-0.0625rem}
+.board-tab{display:flex;align-items:center;justify-content:center;gap:0.5rem;min-height:max(2.75rem,44px);padding:0.6875rem 1rem;font:500 1.0625rem/1.4 var(--display);letter-spacing:-0.01875rem;color:var(--text);border-bottom:0.125rem solid transparent;margin-bottom:-0.0625rem}
 .board-tab:hover{color:var(--ink)}
 .board-tab.is-current{color:var(--ink);border-bottom-color:var(--green)}
 /* The icons are the bottom nav's: a strip of serif labels needs no glyph beside each word. */
@@ -36,7 +36,7 @@
 /* The header's one link to the page the fourth nav slot points at. background:none rather than
    --paper: a surface that paints --paper owes the sheet a surface-colored focus rim, and a quiet
    outlined link needs neither. The phone reaches Settings through the bottom nav, so it stands down. */
-.header-settings{display:inline-flex;align-items:center;min-height:2.75rem;padding:0.6875rem 0.875rem;border:0.0625rem solid var(--line);border-radius:0.5625rem;background:none;color:var(--ink);font-size:0.875rem;font-weight:700}
+.header-settings{display:inline-flex;align-items:center;min-height:max(2.75rem,44px);padding:0.6875rem 0.875rem;border:0.0625rem solid var(--line);border-radius:0.5625rem;background:none;color:var(--ink);font-size:0.875rem;font-weight:700}
 .header-settings:hover{background:var(--sage)}
 @media(max-width:760px){
  .header-settings{display:none}

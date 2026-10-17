@@ -1,5 +1,10 @@
-/* SC 2.5.8 (24x24) is AA and is not conditioned on pointer type. The hit box grows behind the control the way .close already does, so no desktop line box moves. 24px, not rem: the floor is CSS pixels at every display scale. */
+/* SC 2.5.5 (Target Size Enhanced, 44x44) is not conditioned on pointer type, so every hit box here
+   is unconditional now. The box grows BEHIND the control the way .close has always done it, so no
+   desktop line box moves. 44px and not rem: the target is CSS pixels at every display scale, and a
+   rem box would shrink to 38.5px the moment a reader picked the Small scale. */
 #retry,.home-screen-tip summary{position:relative}
-#retry:after,.home-screen-tip summary:after{content:'';position:absolute;top:50%;left:50%;width:100%;min-width:24px;height:24px;transform:translate(-50%,-50%)}
-@media(pointer:coarse){/* .close already clears the 24px floor with its 30px circle, so its 44px overhang is a coarse-pointer comfort target only and stops stealing clicks beside the dialog header on desktop. */.close:after{content:'';position:absolute;top:50%;left:50%;width:2.75rem;height:2.75rem;transform:translate(-50%,-50%)}
-}
+#retry:after,.home-screen-tip summary:after{content:'';position:absolute;top:50%;left:50%;width:100%;min-width:44px;height:44px;transform:translate(-50%,-50%)}
+/* .close draws a 30px circle on purpose -- a 44px circle would dominate the dialog header -- so the
+   target is an invisible overhang instead. It sits at the far end of a space-between header with the
+   wordmark at the other, so 7px of overhang on each side reaches nothing else clickable. */
+.close:after{content:'';position:absolute;top:50%;left:50%;width:2.75rem;min-width:44px;height:44px;transform:translate(-50%,-50%)}

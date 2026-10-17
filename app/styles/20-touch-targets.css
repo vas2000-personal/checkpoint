@@ -1,3 +1,11 @@
-@media(pointer:coarse){/* The 44px target the other nine controls already meet, on the pointers that need it; desktop keeps its line boxes. */#retry{min-height:2.75rem;padding:0 0.75rem}.text-button{min-height:2.75rem}.home-screen-tip summary{min-height:2.75rem;padding:0.6875rem 0}}
+/* SC 2.5.5 Target Size (Enhanced) asks for 44x44 CSS px and, unlike the 24px AA floor it replaces
+   here, nothing in it is conditioned on pointer type -- so these three leave the pointer:coarse
+   block they used to live in. max(2.75rem,44px) rather than a bare 2.75rem: the Small display scale
+   pins the root at 14px, where 2.75rem measures only 38.5px and quietly misses the bar, while the
+   Large scale is still free to grow past 44. All three are block rows on a line of their own rather
+   than inline text, so an unconditional floor moves no line box a reader would notice. */
+#retry{min-height:max(2.75rem,44px);padding:0 0.75rem}
+.text-button{min-height:max(2.75rem,44px)}
+.home-screen-tip summary{min-height:max(2.75rem,44px)}
 /* The dismiss button keeps its 30px circle; the hit box grows behind it instead. */
 .close{position:relative}

@@ -1,0 +1,8 @@
+/* SC 1.4.1 Use of Color (Level A). Every error on the board was a paragraph that differed from body
+   copy only in hue: measured against the text beside it, the panel alert is 1.15:1 in luminance, so a
+   reader who cannot separate those hues sees an ordinary sentence. role=alert announces it, but only
+   to someone listening. Two cues that survive hue loss: a drawn marker body copy does not have, and a
+   heavier weight. The marker is a CSS box rather than a glyph on purpose -- the subset fonts carry no
+   warning character, so a glyph would silently fall back to a system face. */
+:is(#post-error,#join-error,.profile-settings p[role=alert],.settings-panel p[role=alert]):not(:empty){font-weight:600;display:flex;gap:0.4375rem;align-items:baseline}
+:is(#post-error,#join-error,.profile-settings p[role=alert],.settings-panel p[role=alert]):not(:empty)::before{content:'';flex:none;width:0.5rem;height:0.5rem;border-radius:0.125rem;transform:rotate(45deg);background:currentColor}

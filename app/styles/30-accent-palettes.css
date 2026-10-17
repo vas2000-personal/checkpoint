@@ -13,11 +13,11 @@
    the board tabs replaced the feed filter and no JSX renders that class any more.
    The high-contrast blocks keep --focus alone (html[data-contrast=true] pins it to var(--ink)): in
    high contrast the ring is the ink, and an accent ring would be the one thing made less visible. */
-html[data-accent=ocean]{--green:#1d5a73;--focus:#1d5a73}
+html[data-accent=ocean]{--green:#1d5770;--focus:#1d5770}
 html[data-accent=ocean] :is(.header-action,.primary,.settings-save):hover{background:#0d3c4e}
 html[data-accent=plum]{--green:#6b3566;--focus:#6b3566}
 html[data-accent=plum] :is(.header-action,.primary,.settings-save):hover{background:#4b2047}
-html[data-accent=clay]{--green:#8a4a24;--focus:#8a4a24}
+html[data-accent=clay]{--green:#7c4321;--focus:#7c4321}
 html[data-accent=clay] :is(.header-action,.primary,.settings-save):hover{background:#5e3014}
 html[data-accent=ink]{--green:#334652;--focus:#334652}
 html[data-accent=ink] :is(.header-action,.primary,.settings-save):hover{background:#1e2b33}

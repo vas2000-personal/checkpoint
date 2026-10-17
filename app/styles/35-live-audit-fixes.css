@@ -4,7 +4,3 @@
    `.writing-prompts button`, so :is() scores (0,1,1) rather than (0,1,0) and the list beats a plain
    `html[data-dark=true] .post-avatar` by one. */
 html[data-dark=true] .post .post-avatar{background:var(--sage);color:var(--text)}
-/* The Home Screen tip is a real disclosure control, so it owes the 24px AA target floor its siblings
-   already meet; it was rendering 22px tall on every viewport. Padding, not min-height, so the
-   coarse-pointer rule can still take it to 44px without stacking two floors. */
-.home-screen-tip summary{padding-block:0.1875rem}

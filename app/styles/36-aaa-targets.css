@@ -1,0 +1,9 @@
+/* The wordmark is a link home in both the header and the footer, and at 38px and 32px tall it was
+   the last control under the 44px AAA target. It is also the one control whose size is the design:
+   growing the type or padding it would move the header's and footer's whole measure. So it takes the
+   .close idiom instead -- an absolutely positioned pseudo-element that adds the target BEHIND the
+   link and contributes zero layout, so the rendered page is byte-identical.
+   Vertical overhang only (width:100%): 3px above and below in the header, 6px in the footer. Both
+   bars are space-between with the nearest control a full column away, so nothing else is covered. */
+.brand,.footer-brand{position:relative}
+.brand:after,.footer-brand:after{content:'';position:absolute;top:50%;left:50%;width:100%;height:44px;transform:translate(-50%,-50%)}

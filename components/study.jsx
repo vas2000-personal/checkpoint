@@ -44,5 +44,5 @@ export function HomeScreenTip(){
  const [installed,setInstalled]=useState(false);
  useEffect(()=>setInstalled(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true),[]);
  if(installed)return null;
- return <details className="home-screen-tip"><summary>Keep Checkpoint on your Home Screen</summary><p>On iPhone, open this page in Safari, tap Share, then Add to Home Screen. Turn on Open as Web App if prompted.</p><p>Miss Log syncs while it’s open. Checkpoint refreshes when you return; it needs an internet connection.</p></details>
+ return <details className="home-screen-tip compact-widget"><summary><span><strong>Keep Checkpoint on your Home Screen</strong></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></summary><div className="widget-content"><p>On iPhone, open this page in Safari, tap Share, then Add to Home Screen. Turn on Open as Web App if prompted.</p><p>Miss Log syncs while it’s open. Checkpoint refreshes when you return; it needs an internet connection.</p></div></details>
 }

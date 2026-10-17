@@ -1,0 +1,30 @@
+/* The Progress grid stretches its two cards to the same height above 900px (34-tab-panels.css), so
+   the Adventure card now has 168px it did not ask for. Distributing that into the trail SCENE rather
+   than letting it pool under the level bar is the whole point: the trail is a landscape illustration
+   whose svg already scales to its box, so a taller box is more scene, while pushing .level-progress
+   down with margin-top:auto would just move the hole. min-height keeps the designed size as a floor
+   for the case where the Adventure card is the TALLER of the two. */
+@media(min-width:901px){
+ .progress-grid>.card{display:flex;flex-direction:column}
+ .progress-grid .trail-scene{flex:1 1 auto;height:auto;min-height:13.4375rem}
+ .progress-grid .study-week{flex:1 1 auto}
+}
+/* One vertical rhythm for all three board tabs. Today was 24/14/20/0 (two cards simply touched),
+   Progress was 38 between the stat row and the card grid, and Journal was 7/23 above its heading and
+   26 below its closing note -- three tabs, three rhythms, none of them stated once. A flex column
+   with a single gap per panel is the only place the number now lives, which is why the margins those
+   blocks used to carry are reset here rather than tuned. 1.5rem matches the gap the Progress card
+   grid and the stat grid already used, so this adopts the board's existing step instead of a new one.
+   /settings is deliberately NOT folded in: its panels are already a uniform 18px stack in a narrower
+   column, and nothing reported it -- a second rhythm for a second page type is a decision, not drift. */
+#panel-progress,#panel-journal .feed-column{display:flex;flex-direction:column;gap:1.5rem}
+#panel-progress>.stats,#panel-progress>.progress-grid{margin-bottom:0}
+#panel-journal .feed-column>.feed-heading,#panel-journal .feed-column>.feed-note{margin-top:0;margin-bottom:0}
+/* The strip names the board the panel below it is showing, and the board-level error belongs to that
+   same panel, so both take the measure of whichever tab is open rather than always running to the page
+   edge. Without this, giving the Today tab one 48rem column left the "Following" select 192px to the
+   left of everything it introduces -- and Journal, whose feed was already 48rem, had that gap all along.
+   Progress is genuinely wide content (a 4-up stat row and a 2-up card grid), so it keeps the full
+   measure and the strip keeps it too: the strip matches the panel, not a fixed number. */
+main:has(#panel-today:not([hidden])) :is(.board-strip,#retry,main>.empty),
+main:has(#panel-journal:not([hidden])) :is(.board-strip,#retry,main>.empty){max-width:48rem;margin-inline:auto}

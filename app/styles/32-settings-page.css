@@ -6,7 +6,7 @@
 .settings-head{margin:1.5rem 0 0}
 .settings-head h1{font:500 clamp(1.75rem,3.2vw,2.5rem)/1.15 var(--display);letter-spacing:-0.05rem;margin:.375rem 0 .5rem}
 .settings-head p{max-width:34rem}
-.settings-back{display:inline-flex;align-items:center;gap:.5rem;min-height:2.75rem;font-weight:700}
+.settings-back{display:inline-flex;align-items:center;gap:.5rem;min-height:max(2.75rem,44px);font-weight:700}
 .settings-back svg{width:1rem;height:1rem;transform:rotate(180deg)}
 /* Horizontally scrollable, never wrapped: at 320px a wrap puts two cramped rows of pills above the
    panel. Padding and scroll-padding both clear the 0.4375rem focus rim, because overflow-x makes
@@ -14,7 +14,7 @@
 .settings-nav{margin:1.25rem 0 1.5rem}
 .settings-nav ul{display:flex;gap:.5rem;list-style:none;margin:0;padding:.4375rem;overflow-x:auto;scroll-padding:.4375rem;overscroll-behavior-x:contain}
 .settings-nav li{flex:0 0 auto}
-.settings-nav a{display:inline-flex;align-items:center;min-height:2.75rem;padding:.5rem .9375rem;border:0.0625rem solid var(--line);border-radius:999px;background:var(--paper);color:var(--muted);font-size:.8125rem;font-weight:700;white-space:nowrap}
+.settings-nav a{display:inline-flex;align-items:center;min-height:max(2.75rem,44px);padding:.5rem .9375rem;border:0.0625rem solid var(--line);border-radius:999px;background:var(--paper);color:var(--muted);font-size:.8125rem;font-weight:700;white-space:nowrap}
 .settings-nav a[aria-current=page]{background:var(--green);color:var(--paper);border-color:var(--green);font-weight:800}
 .settings-body{display:grid;gap:1.125rem;max-width:46rem}
 .settings-panel{margin-top:0}
@@ -30,12 +30,12 @@
 .settings-switch-state{flex-shrink:0;min-width:3rem;padding:.3125rem .625rem;border:0.0625rem solid var(--line);border-radius:999px;background:var(--sage);color:var(--ink);font-size:.75rem;font-weight:800;text-align:center}
 .settings-switch[aria-pressed=true] .settings-switch-state{background:var(--green);color:var(--paper);border-color:var(--green)}
 .settings-choices{display:flex;flex-wrap:wrap;gap:.5rem}
-.settings-choice{min-height:2.75rem;padding:.5rem .9375rem;border:0.0625rem solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink);font-size:.8125rem;font-weight:600}
+.settings-choice{min-height:max(2.75rem,44px);padding:.5rem .9375rem;border:0.0625rem solid var(--line);border-radius:.5rem;background:var(--paper);color:var(--ink);font-size:.8125rem;font-weight:600}
 .settings-choice[aria-pressed=true]{background:var(--green);color:var(--paper);border-color:var(--green);font-weight:800}
 /* A native radio, not a hidden input behind a swatch: it keeps the arrow-key group semantics and the
    one shared focus ring, and the whole row is the 44px target because the label wraps the input. */
 .accent-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.5rem;margin:0;padding:0;border:0}
-.accent-option{display:flex;align-items:center;gap:.625rem;min-height:2.75rem;padding:.625rem;border:0.0625rem solid var(--line);border-radius:.75rem;background:var(--paper);color:var(--ink);font-size:.8125rem;font-weight:700;cursor:pointer}
+.accent-option{display:flex;align-items:center;gap:.625rem;min-height:max(2.75rem,44px);padding:.625rem;border:0.0625rem solid var(--line);border-radius:.75rem;background:var(--paper);color:var(--ink);font-size:.8125rem;font-weight:700;cursor:pointer}
 /* 24px square, absolute, the way .pass-check input[type=checkbox] in 28-passphrase.css is pinned:
    the row is the 44px target, but the house pattern is that a tick box carries the SC 2.5.8 floor
    itself rather than opting out of it, and a rem box would shrink to 21px at the Small scale.
@@ -45,9 +45,9 @@
 .accent-option input{width:24px;height:24px;min-width:24px;min-height:24px;padding:0;margin:0;flex-shrink:0;accent-color:var(--green)}
 .accent-option:has(input:checked){border-color:var(--green);box-shadow:inset 0 0 0 0.0625rem var(--green)}
 .accent-swatch{width:1.5rem;height:1.5rem;border-radius:50%;flex-shrink:0;border:0.0625rem solid var(--line);background:var(--swatch,#2e513e)}
-.accent-option[data-accent=ocean]{--swatch:#1d5a73}
+.accent-option[data-accent=ocean]{--swatch:#1d5770}
 .accent-option[data-accent=plum]{--swatch:#6b3566}
-.accent-option[data-accent=clay]{--swatch:#8a4a24}
+.accent-option[data-accent=clay]{--swatch:#7c4321}
 .accent-option[data-accent=ink]{--swatch:#334652}
 html[data-dark=true] .accent-option{--swatch:#a7c99b}
 html[data-dark=true] .accent-option[data-accent=ocean]{--swatch:#8fcbe3}
@@ -71,7 +71,7 @@ html[data-dark=true] .accent-option[data-accent=ink]{--swatch:#c5d3dd}
 /* The icon-over-label stack and the 3.5rem slot are the board's own bottom nav (33-board-tabs.css):
    the two bars sit at the same screen position, so one of them having icons and a shorter slot was
    the other half of the inconsistency the shared SLOTS table in components/tabs/slugs.js fixes. */
-.settings-bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1875rem;min-height:2.75rem;padding:.375rem .25rem;border-radius:.5rem;color:var(--muted);font-size:.75rem;font-weight:700;text-align:center}
+.settings-bottom-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1875rem;min-height:max(2.75rem,44px);padding:.375rem .25rem;border-radius:.5rem;color:var(--muted);font-size:.75rem;font-weight:700;text-align:center}
 .settings-bottom-nav a svg{width:1.375rem;height:1.375rem}
 /* --green, not --sage, for exactly the reason 33-board-tabs.css gives for the board's own bottom
    nav: --sage on --bg measured 1.08:1 light, 1.60:1 dark, 1.16:1 high contrast and 1.32:1
@@ -90,7 +90,7 @@ html[data-dark=true] .accent-option[data-accent=ink]{--swatch:#c5d3dd}
    the 44px height the rule gives everything else. */
 a.settings-save{display:inline-flex;align-items:center;justify-content:center;gap:.5rem}
 .settings-reveal{margin-top:1.25rem}
-.settings-reveal>summary{min-height:2.75rem;display:flex;align-items:center;gap:.375rem;list-style:none;font-size:.8125rem;font-weight:700;cursor:pointer}
+.settings-reveal>summary{min-height:max(2.75rem,44px);display:flex;align-items:center;gap:.375rem;list-style:none;font-size:.8125rem;font-weight:700;cursor:pointer}
 .settings-reveal>summary::-webkit-details-marker{display:none}
 .settings-reveal>summary svg{width:1rem;height:1rem}
 .settings-reveal[open]>summary svg{transform:rotate(180deg)}
@@ -102,5 +102,5 @@ a.settings-save{display:inline-flex;align-items:center;justify-content:center;ga
    brick red lost to ordinary body copy and a failed Miss Log, day or account save read as a plain
    sentence. Restated here exactly as 28-passphrase.css restates #join-error, which had the same bug.
    The alert markup is unchanged: the class was never missing, the cascade was. */
-html[data-dark=true] .profile-settings p[role=alert]{color:#f0a98f}
+html[data-dark=true] .profile-settings p[role=alert]{color:#f0ad97}
 html[data-contrast=true] .profile-settings p[role=alert]{color:var(--ink)}
