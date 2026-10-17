@@ -1,11 +1,11 @@
 "use client";
 import {useEffect,useState} from 'react';
-import {ACCENTS,DEFAULTS,attrs,cleanupWidgetKeys,read,write} from '../../lib/prefs.js';
+import {DEFAULTS,THEMES,attrs,cleanupWidgetKeys,read,write} from '../../lib/prefs.js';
 import {Choices,Panel,Switch} from './controls.jsx';
 // The tab labels and their order come from the same SLOTS table both bottom navs read, so this
 // select cannot call the Journal "Study" while the navs call it "Journal" (SC 3.2.4).
 import {SLOTS} from '../tabs/slugs.js';
-const ACCENT_NAMES={forest:'Forest',ocean:'Ocean',plum:'Plum',clay:'Clay',ink:'Ink'};
+const THEME_NAMES={forest:'Forest',ocean:'Ocean',plum:'Plum',clay:'Clay',ink:'Ink'};
 // DEVICE-LOCAL AND SIGNED OUT ON PURPOSE. His parents read this board on phones, with no account and
 // no intention of making one, and text size, dark mode and reduced motion are the settings they
 // actually need. Nothing here is fetched, posted or gated; it is localStorage through lib/prefs.js,
@@ -22,16 +22,16 @@ export default function DisplayPanel(){
  return <>
   <Panel eyebrow="ON THIS DEVICE" title="How Checkpoint looks" lead="These stay in this browser, so they need no account and travel with nobody. Everything previews as you tap it.">
    <div className="settings-fields">
-    {[['dark','Dark mode','Easier at night, and the page keeps its cream warmth by day.'],['contrast','High contrast','Stronger text and borders, for bright rooms and tired eyes.'],['focus','Focus mode','Hides the hero, the trail and the side cards, leaving the day and the feed.']].map(([key,label,hint])=>
+    {[['dark','Dark mode','Easier at night. Your theme keeps its hue either way.'],['contrast','High contrast','Stronger text and borders, for bright rooms and tired eyes.'],['focus','Focus mode','Hides the hero, the trail and the side cards, leaving the day and the feed.']].map(([key,label,hint])=>
      <Switch key={key} label={label} hint={hint} on={prefs[key]} onChange={value=>update({[key]:value})}/>)}
     <Choices id="text-size" label="Text size" value={prefs.scale} onChange={scale=>update({scale})} options={[['small','Small'],['normal','Normal'],['large','Large']]} hint="Large keeps every control and target growing with it. Pinch zoom still works too."/>
    </div>
   </Panel>
-  <Panel eyebrow="YOUR COLOR" title="Accent color" lead="The accent on buttons, links and the chart. Forest green is the one Pip wears; the rest keep the same cream paper and the same contrast.">
-   <div className="accent-list" role="radiogroup" aria-label="Accent color">
-    {ACCENTS.map(accent=><label key={accent} className="accent-option" data-accent={accent}><input type="radio" name="accent" value={accent} checked={prefs.accent===accent} onChange={()=>update({accent})}/><span className="accent-swatch" aria-hidden="true"/>{ACCENT_NAMES[accent]}</label>)}
+  <Panel eyebrow="YOUR COLOR" title="Theme" lead="A theme is the whole board: the paper, the cards, the hairlines and the accent on the buttons. Forest is the one Pip wears. Every theme is checked for the same contrast, and dark mode and high contrast still apply on top of whichever you pick.">
+   <div className="theme-list" role="radiogroup" aria-label="Theme">
+    {THEMES.map(theme=><label key={theme} className="theme-option" data-theme={theme}><input type="radio" name="theme" value={theme} checked={prefs.theme===theme} onChange={()=>update({theme})}/><span className="theme-swatch" aria-hidden="true"/>{THEME_NAMES[theme]}</label>)}
    </div>
-   <span className="settings-hint">Each color is checked for readable text in all four themes, including high contrast.</span>
+   <span className="settings-hint">Every theme is generated from one recipe and checked pair by pair, in light, dark and high contrast, before it ships.</span>
   </Panel>
   <Panel eyebrow="MOVEMENT AND PACE" title="Motion" lead="Three states rather than a switch, because “off” has to be able to mean “my phone already asks for less motion, and I am happy with that”.">
    <div className="settings-fields">

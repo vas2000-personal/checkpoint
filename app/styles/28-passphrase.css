@@ -14,5 +14,5 @@
 .pass-code code{flex:1 1 9rem;min-width:0;font:700 0.875rem/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0.0625rem;color:var(--ink);overflow-wrap:break-word;text-align:center}
 .copy-code{min-height:max(2.75rem,44px);padding:0.4375rem 0.75rem;border:0.0625rem solid var(--green);border-radius:0.5rem;background:none;color:var(--green);font-size:0.8125rem;font-weight:700}
 /* The sign-in error carries the passphrase copy now, so it is read far more often than it was. #a1533b is 2.44:1 on the dark dialog; high contrast reuses the ink token the rest of the sheet uses. */
-html[data-dark=true] #join-error{color:#f0ad97}
+html[data-dark=true] #join-error{color:var(--alert)}
 html[data-contrast=true] #join-error{color:var(--ink)}
