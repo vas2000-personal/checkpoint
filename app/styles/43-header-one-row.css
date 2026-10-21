@@ -1,0 +1,10 @@
+/* The header's actions belong on the brand's row. 11-display-prefs.css gives .header-actions
+   width:100% below 600px, which is from the wrapped-header era: it does not matter how little the
+   moon, New user and Sign in need, a full-width row cannot share a line with the wordmark, so the
+   phone always drew "checkpoint." on one row and the three controls on another. Width is theirs to
+   ask for again. They fit: at 390px the brand is 150px and the three controls are 198px inside a
+   358px row -- two pixels short, which is why the compact type and padding 07-typography-scale.css
+   kept for 360px now starts at 480px and buys back twelve. .header-inner keeps flex-wrap:wrap as the
+   escape hatch for the Large text size, where they genuinely do not fit. */
+@media(max-width:600px){.site-header .header-actions{width:auto;justify-content:flex-end}}
+@media(max-width:480px){.header-action,.new-user-button{font-size:.6875rem;padding:.5rem}}
