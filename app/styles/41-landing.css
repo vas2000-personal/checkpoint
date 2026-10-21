@@ -28,10 +28,27 @@
 /* Centered on the TITLE's line rather than on the card: the card's height belongs to the tallest blurb
    in the grid, so a centered arrow would float at a different height in every card. */
 .landing-button-arrow{width:1.125rem;height:1.125rem;margin-top:0.28125rem;color:var(--green)}
+/* THE DOOR OPENS WITHOUT A SCROLL. On a phone the hero copy ate the screen: the eyebrow, "A little
+   further, every day.", the subtitle and the status line pushed "Where would you like to start?" to
+   700px down a 1360px page, so a visitor met a headline and had to scroll to find the four doors the
+   page exists to offer. The copy keeps its place in the accessibility tree -- the h1 is still this
+   page's real heading and still the first thing a screen reader meets -- it is only the drawing that
+   greets the eye, and the drawing shrinks to make room. Everything here is landing-only: the board's
+   hero is a collapsed widget inside a card and is not affected.
+   The cards tighten to match. Four of them now end around 690px, inside the ~730px a phone browser
+   leaves between its own two bars. */
 @media(max-width:760px){
- .landing .intro{margin:1.25rem 0 1.75rem}
- .landing-nav ul{grid-template-columns:minmax(0,1fr)}
- .landing-nav-heading{font-size:1.3125rem}
+ .landing .intro{margin:0.75rem 0 1.25rem}
+ .landing .hero-copy{position:absolute;width:0.0625rem;height:0.0625rem;padding:0;overflow:hidden;clip:rect(0,0,0,0)}
+ .landing .hero-art{width:min(100%,18rem);height:10rem;margin:0 auto}
+ .landing-nav ul{grid-template-columns:minmax(0,1fr);gap:0.5rem}
+ .landing-nav{margin-bottom:1.75rem}
+ .landing-nav-heading{font-size:1.1875rem;margin-bottom:0.75rem}
+ .landing-button{gap:0.75rem;padding:0.875rem 1rem}
+ .landing-button-icon{width:2.25rem;height:2.25rem;border-radius:0.625rem}
+ .landing-button-icon svg{width:1.125rem;height:1.125rem}
+ .landing-button-text strong{font-size:1rem;line-height:1.45}
+ .landing-button-text small{font-size:0.75rem;line-height:1.45}
  /* The arrow is decoration on a row that is already a whole-width target; at 360px it is the thing
     that pushes the blurb into a third line. */
  .landing-button-arrow{display:none}
