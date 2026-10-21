@@ -1,0 +1,12 @@
+/* The phone got Miss Log's delivery without the sentence that says what it is. 02-base-responsive
+   hides .mascot-note at 760px because the note used to be a rotated label pinned past the right edge
+   of a one-mascot hero, where a narrow screen had nowhere to put it. The pair is a grid now
+   (09-hero-layout.css), so the line can sit centered under the mascots instead of on top of Pip, and
+   it keeps the 0.8125rem of the desktop hero rather than the 0.6875rem 05-mascots-study.css shrank it
+   to while it was invisible. The hand-drawn arrow stays hidden: it points from a corner that no
+   longer exists. Everything absolute in .hero-art moves up by the caption's 1.75rem so the mascots,
+   the ground line and the stars keep their place in the frame.
+   The same breakpoint pulls the pair off the screen edge. Pip's image is 127.699% of his column on
+   purpose, so he overhangs it on both sides; at 390px that left his tail three pixels from the
+   viewport while Miss Log sat a full gutter in from the left. */
+@media(max-width:760px){.hero-art{height:15.25rem}.mascot-pair{padding:0 1rem;bottom:3.5rem}.hero-art .mascot-ground{bottom:2.75rem}.hero-art .star-two{bottom:5.75rem}.hero-art .mascot-note{display:block;position:absolute;left:0;right:0;top:auto;bottom:0;padding:0;font-size:0.8125rem;text-align:center;transform:none}.hero-art .mascot-note svg{display:none}}
