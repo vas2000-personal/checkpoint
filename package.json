@@ -12,5 +12,5 @@
     "css:check": "node scripts/css-cascade.mjs"
   },
   "engines": {"node": ">=22"},
-  "dependencies": {"next":"16.4.0","react":"19.3.0","react-dom":"19.3.0"}
+  "dependencies": {"next":"16.4.2","react":"19.3.1","react-dom":"19.3.1"}
 }
